@@ -455,7 +455,7 @@ Always verify objective truths using your search tool.`
               const cmd = args.cmd;
               const cmdArgs = args.args || [];
               
-              const resp = await fetch("https://192.168.178.20:5055", {
+              const resp = await fetch("https://192.168.178.20:5056", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ cmd: cmd, args: cmdArgs })

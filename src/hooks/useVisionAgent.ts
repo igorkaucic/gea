@@ -38,11 +38,9 @@ export function useVisionAgent(apiKey: string) {
 
       const response = await ai.models.generateContentStream({
         model: 'gemini-3.1-flash-image-preview',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        contents: [{ role: 'user', parts: [{ text: prompt + '\n[Generate image as 1:1 square aspect ratio at exactly 512x512 resolution]' }] }],
         config: {
           responseModalities: ['IMAGE', 'TEXT'],
-          // @ts-ignore - The genai SDK types might be incomplete for imageConfig
-          imageConfig: { aspectRatio: "1:1", imageSize: "512" },
           thinkingConfig: {
             // @ts-ignore - The genai SDK types are missing HIGH but the API requires it
             thinkingLevel: 'HIGH',

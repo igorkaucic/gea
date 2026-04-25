@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { dbGetAll } from '../db/db';
+import { dbGetAll, dbAdd } from '../db/db';
 
 const GDRIVE_CLIENT_ID = '52189932004-5gmr5374et671n3sfpjs6g3ic6f78f20.apps.googleusercontent.com';
 const GDRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile';
@@ -206,9 +206,47 @@ export function useGoogleDrive() {
     // 2. Get existing subfolders in Gea/
     const existingFolders = await listFilesInFolder(token, rootId);
 
-    // SAFETY LOCK: Prevent zero-state wipes
+    // SAFETY LOCK: Auto-Restore
     if (allNotes.length === 0 && existingFolders.length > 0) {
-      throw new Error("Safety Lock Engaged: Local database is empty but Cloud backup exists. Sync aborted to prevent wiping your Drive.");
+      window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '⬇️ Local DB empty. Restoring notes from Drive...'}));
+      
+      for (const folder of existingFolders) {
+        if (folder.name === 'Images') continue;
+        const files = await listFilesInFolder(token, folder.id);
+        for (const file of files) {
+          if (!file.name.endsWith('.md')) continue;
+          try {
+            const rawRes = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+              headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const text = await rawRes.text();
+            
+            let title = 'Untitled';
+            let timestamp = new Date().toISOString();
+            let folderName = folder.name;
+            
+            const lines = text.split('\n');
+            let bodyLines = [];
+            let parsingMeta = false;
+            
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              if (i === 0 && line.startsWith('# ')) { title = line.substring(2).trim(); continue; }
+              if (line.trim() === '---' && i >= lines.length - 5) { parsingMeta = true; continue; }
+              if (parsingMeta) {
+                if (line.startsWith('*Created: ')) timestamp = line.replace('*Created: ', '').replace(/\*/g, '').trim();
+                if (line.startsWith('*Folder: ')) folderName = line.replace('*Folder: ', '').replace(/\*/g, '').trim();
+                continue;
+              }
+              bodyLines.push(line);
+            }
+            await dbAdd('notes', { title, body: bodyLines.join('\n').trim(), timestamp, folder_name: folderName });
+          } catch (e) { console.error("Restore note failed", e); }
+        }
+      }
+      
+      window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
+      return; // Do not execute destructive mirror after restoring
     }
 
     if (allNotes.length === 0) return;
@@ -275,9 +313,35 @@ export function useGoogleDrive() {
     const imagesRootId = await findOrCreateFolder(token, 'Images', rootId);
     const existingFolders = await listFilesInFolder(token, imagesRootId);
 
-    // SAFETY LOCK
+    // SAFETY LOCK: Auto-Restore
     if (allImages.length === 0 && existingFolders.length > 0) {
-      throw new Error("Safety Lock Engaged: Local image database is empty but Cloud backup exists. Sync aborted.");
+      window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '🖼️ Restoring images from Drive...'}));
+      
+      for (const folder of existingFolders) {
+        const files = await listFilesInFolder(token, folder.id);
+        for (const file of files) {
+          if (!file.name.endsWith('.png')) continue;
+          try {
+            const rawRes = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+              headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const blob = await rawRes.blob();
+            
+            const reader = new FileReader();
+            const base64Promise = new Promise<string>((resolve) => {
+              reader.onloadend = () => resolve(reader.result as string);
+            });
+            reader.readAsDataURL(blob);
+            const full_b64 = await base64Promise;
+            
+            const filename = file.name.replace('.png', '').split('_')[0] || 'gea_image';
+            await dbAdd('images', { filename, full_b64, timestamp: new Date().toISOString() });
+          } catch (e) { console.error("Restore image failed", e); }
+        }
+      }
+      
+      window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
+      return;
     }
 
     if (allImages.length === 0) return;

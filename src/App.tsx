@@ -17,6 +17,7 @@ function App() {
   const [activePage, setActivePage] = useState('home');
   const [notes, setNotes] = useState<any[]>([]);
   const [images, setImages] = useState<any[]>([]);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   const { isActive, isMuted, UIState, statusText, thoughts, connect, stopAll, toggleMute } = useGeminiLive(apiKey, 'Leda');
   const { syncDrive, trySilentSync, isSyncing, userInfo, logoutDrive } = useGoogleDrive();
@@ -45,8 +46,27 @@ function App() {
     window.addEventListener('DATA_CHANGED', handleDataChanged);
     const handleGenerateImage = (e: any) => { generateImage(e.detail); };
     window.addEventListener('GENERATE_IMAGE', handleGenerateImage);
-    return () => { window.removeEventListener('SHOW_TOAST', handleToast); window.removeEventListener('DATA_CHANGED', handleDataChanged); window.removeEventListener('GENERATE_IMAGE', handleGenerateImage); };
+
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => { 
+      window.removeEventListener('SHOW_TOAST', handleToast); 
+      window.removeEventListener('DATA_CHANGED', handleDataChanged); 
+      window.removeEventListener('GENERATE_IMAGE', handleGenerateImage); 
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
+
+  const installApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') setDeferredPrompt(null);
+  };
 
   // Auto-sync after AI conversation ends
   useEffect(() => {
@@ -84,6 +104,16 @@ function App() {
 
       {/* Toast */}
       {toast && <div className="toast">{toast}</div>}
+
+      {deferredPrompt && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, background: 'var(--cyan)', color: '#000', padding: '12px', zIndex: 9999, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontWeight: 'bold', fontSize: '14px' }}>Install GEA Terminal</span>
+          <div>
+            <button onClick={installApp} style={{ background: '#000', color: 'var(--cyan)', border: 'none', padding: '6px 12px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', marginRight: '8px' }}>Install</button>
+            <button onClick={() => setDeferredPrompt(null)} style={{ background: 'transparent', color: '#000', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+          </div>
+        </div>
+      )}
 
       {/* Pages */}
       <div className="pages">

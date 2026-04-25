@@ -42,7 +42,7 @@ export default function CalendarPanel({ notes, images, onNavigateToNotes }: Prop
   for (let i = 1; i <= remaining; i++) cells.push({ day: i, type: 'next' });
 
   // Events for selected day
-  const events: { type: string; time: string; title: string; sub?: string }[] = [];
+  const events: { type: string; time: string; title: string; sub?: string; thumbnail?: string }[] = [];
   if (selectedDay) {
     for (const n of notes) {
       const d = new Date(n.timestamp);
@@ -53,7 +53,7 @@ export default function CalendarPanel({ notes, images, onNavigateToNotes }: Prop
     for (const img of images) {
       const d = new Date(img.timestamp);
       if (d.getDate() === selectedDay && d.getMonth() === month && d.getFullYear() === year) {
-        events.push({ type: 'image', time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), title: 'Generated Image', sub: (img.prompt || '').substring(0, 60) });
+        events.push({ type: 'image', time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), title: 'Generated Image', sub: (img.prompt || '').substring(0, 60), thumbnail: img.thumbnail_b64 });
       }
     }
     events.sort((a, b) => a.time.localeCompare(b.time));
@@ -124,6 +124,11 @@ export default function CalendarPanel({ notes, images, onNavigateToNotes }: Prop
                       <div>
                         <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{ev.title}</div>
                         {ev.sub && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{ev.sub}</div>}
+                        {ev.thumbnail && (
+                          <div style={{ marginTop: '8px', borderRadius: '6px', overflow: 'hidden', border: '1px solid var(--border)', maxWidth: '120px' }}>
+                            <img src={ev.thumbnail} alt="thumbnail" style={{ display: 'block', width: '100%', height: 'auto' }} />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

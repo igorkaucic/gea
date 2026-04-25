@@ -59,22 +59,26 @@ export function useVisionAgent(apiKey: string) {
         for (const part of chunk.candidates[0].content.parts) {
           // Thought text — stream to terminal (gray-white)
           if ((part as any).thought && part.text) {
+            console.info(`[VISION_LOG] Thought chunk received: ${part.text.substring(0, 20)}...`);
             fullText += part.text;
             appendText(jobId, `<span class="v-thought">${part.text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`);
           }
           // Final text response
           else if (part.text) {
+            console.info(`[VISION_LOG] Final text chunk received: ${part.text.substring(0, 20)}...`);
             fullText += part.text;
             appendText(jobId, '\n' + part.text.replace(/</g, '&lt;').replace(/>/g, '&gt;'));
           }
           // Image data
           if (part.inlineData && part.inlineData.data) {
+            console.info(`[VISION_LOG] Image chunk received! Size: ${part.inlineData.data.length}`);
             imageData = part.inlineData.data;
             imageMime = part.inlineData.mimeType || 'image/png';
             appendText(jobId, '\n<span class="v-label">[ 📦 Image data received ]</span>');
           }
         }
       }
+      console.info(`[VISION_LOG] Stream finished. Total text length: ${fullText.length}`);
 
       if (imageData) {
         let generatedFilename = 'gea_image';

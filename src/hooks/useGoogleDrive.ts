@@ -194,6 +194,16 @@ export function useGoogleDrive() {
     // 1. Get all local notes
     const allNotes = await dbGetAll('notes');
 
+    // 2. Get existing subfolders in Gea/
+    const existingFolders = await listFilesInFolder(token, rootId);
+
+    // SAFETY LOCK: Prevent zero-state wipes
+    if (allNotes.length === 0 && existingFolders.length > 0) {
+      throw new Error("Safety Lock Engaged: Local database is empty but Cloud backup exists. Sync aborted to prevent wiping your Drive.");
+    }
+
+    if (allNotes.length === 0) return;
+
     // 2. Group notes by folder_name
     const grouped: Record<string, any[]> = {};
     for (const note of allNotes) {
@@ -202,8 +212,7 @@ export function useGoogleDrive() {
       grouped[folder].push(note);
     }
 
-    // 4. Get existing subfolders in Gea/
-    const existingFolders = await listFilesInFolder(token, rootId);
+    // 4. (existingFolders already fetched at top for safety lock)
     const existingFolderMap: Record<string, string> = {};
     for (const f of existingFolders) {
       existingFolderMap[f.name] = f.id;
@@ -254,9 +263,15 @@ export function useGoogleDrive() {
 
   const syncImagesToDrive = async (token: string, rootId: string) => {
     const allImages = await dbGetAll('images');
-    if (allImages.length === 0) return;
-
     const imagesRootId = await findOrCreateFolder(token, 'Images', rootId);
+    const existingFolders = await listFilesInFolder(token, imagesRootId);
+
+    // SAFETY LOCK
+    if (allImages.length === 0 && existingFolders.length > 0) {
+      throw new Error("Safety Lock Engaged: Local image database is empty but Cloud backup exists. Sync aborted.");
+    }
+
+    if (allImages.length === 0) return;
 
     // Group images by YYYY-MM
     const grouped: Record<string, any[]> = {};
@@ -267,7 +282,7 @@ export function useGoogleDrive() {
       grouped[folderName].push(img);
     }
 
-    const existingFolders = await listFilesInFolder(token, imagesRootId);
+    // (existingFolders already fetched at top for safety lock)
     const existingFolderMap: Record<string, string> = {};
     for (const f of existingFolders) existingFolderMap[f.name] = f.id;
 

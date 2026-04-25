@@ -1,17 +1,32 @@
 # GEA Deploy Script - Build + Push to GitHub Pages
 $ErrorActionPreference = "Stop"
 
-# Bump version
 $versionFile = "src/version.ts"
-$content = Get-Content $versionFile -Raw
-$match = [regex]::Match($content, "v(\d+)\.(\d+)\.(\d+)")
-$major = [int]$match.Groups[1].Value
-$minor = [int]$match.Groups[2].Value
-$patch = [int]$match.Groups[3].Value + 1
-$newVersion = "v$major.$minor.$patch"
-$content = $content -replace "v\d+\.\d+\.\d+", $newVersion
-Set-Content $versionFile $content
-Write-Host "Version bumped to $newVersion" -ForegroundColor Cyan
+Write-Host "`n Incrementing version..." -ForegroundColor Cyan
+if (Test-Path $versionFile) {
+    $currentContent = Get-Content $versionFile -Raw
+    $currentVersion = [regex]::Match($currentContent, "'(\d+\.\d+)'").Groups[1].Value
+} else {
+    $currentVersion = "1.0"
+}
+
+$parts = $currentVersion.Split('.')
+if ($parts.Count -eq 2) {
+    $major = [int]$parts[0]
+    $minor = [int]$parts[1]
+    if ($minor -ge 9) {
+        $major = $major + 1
+        $newMinor = 0
+    } else {
+        $newMinor = $minor + 1
+    }
+    $newVersion = "$major.$newMinor"
+} else {
+    $newVersion = "1.1"
+}
+
+Set-Content -Path $versionFile -Value "export const APP_VERSION = '$newVersion';" -Encoding UTF8
+Write-Host " Version bumped: $currentVersion -> $newVersion" -ForegroundColor Green
 
 # Build
 Write-Host "Building..." -ForegroundColor Yellow

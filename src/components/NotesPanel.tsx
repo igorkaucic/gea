@@ -70,6 +70,16 @@ export default function NotesPanel({ notes, loadData, trySilentSync, isActive }:
 
   const sortedFolders = Object.entries(grouped).sort(([a], [b]) => a.localeCompare(b));
 
+  const handleCopyNote = async (note: any) => {
+    try {
+      const textToCopy = `${note.title || 'Untitled'}\n\n${note.body || ''}`;
+      await navigator.clipboard.writeText(textToCopy);
+      window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '✅ Note copied to clipboard!' }));
+    } catch (e) {
+      window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '❌ Failed to copy note.' }));
+    }
+  };
+
   return (
     <>
       <h1 className="page-header">Notes</h1>
@@ -150,6 +160,10 @@ export default function NotesPanel({ notes, loadData, trySilentSync, isActive }:
                               <button onClick={() => startEdit(note)} style={{ background: 'rgba(255,255,255,0.03)', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                                 EDIT
+                              </button>
+                              <button onClick={() => handleCopyNote(note)} style={{ background: 'rgba(255,255,255,0.03)', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                                COPY
                               </button>
                             </div>
                             <button className="note-delete" onClick={() => handleDelete(note)}>

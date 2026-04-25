@@ -208,6 +208,28 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
               }
             },
             {
+              name: "searchImages",
+              description: "Search for generated images by filename or prompt.",
+              parameters: {
+                type: "OBJECT",
+                properties: {
+                  query: { type: "STRING", description: "Search keyword for filename or prompt." }
+                },
+                required: ["query"]
+              }
+            },
+            {
+              name: "deleteImage",
+              description: "Delete an image by ID. Use searchImages first to find the ID.",
+              parameters: {
+                type: "OBJECT",
+                properties: {
+                  id: { type: "NUMBER", description: "Image ID to delete." }
+                },
+                required: ["id"]
+              }
+            },
+            {
               name: "getLocation",
               description: "Get user's GPS location.",
               parameters: { type: "OBJECT", properties: {}, required: [] }
@@ -408,6 +430,42 @@ Always verify objective truths using your search tool.`
             } catch (err) {
               console.error("DB Delete Error:", err);
               result = { result: "Error deleting: " + err };
+            }
+          }
+
+          else if (call.name === "searchImages") {
+            try {
+              const args = call.args || {};
+              const allImages = await dbGetAll('images');
+              const query = (args.query || '').toLowerCase();
+              let filtered = allImages.filter((img: any) => {
+                if (query) {
+                  const haystack = [img.filename, img.prompt].filter(Boolean).join(' ').toLowerCase();
+                  if (!haystack.includes(query)) return false;
+                }
+                return true;
+              });
+              filtered.sort((a: any, b: any) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
+              filtered = filtered.slice(0, 10);
+              const resultText = filtered.length === 0 ? 'No images found.' : filtered.map((img: any, i: number) => `[${i + 1}] ID:${img.id} | Filename: ${img.filename || 'N/A'} | Prompt: ${(img.prompt || '').substring(0, 100)}...`).join('\n');
+              result = { result: `Found ${filtered.length} images:\n${resultText}` };
+            } catch (err) {
+              result = { result: "Error: " + err };
+            }
+          }
+
+          else if (call.name === "deleteImage") {
+            try {
+              const args = call.args || {};
+              const snapshot = await dbGet('images', args.id);
+              await dbDelete('images', args.id);
+              if (snapshot) {
+                aiActionStackRef.current.push({ type: 'delete', store: 'images', id: args.id, data: snapshot });
+              }
+              window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
+              result = { result: `Successfully deleted image! (ID: ${args.id})` };
+            } catch (err) {
+              result = { result: "Error deleting image: " + err };
             }
           }
 

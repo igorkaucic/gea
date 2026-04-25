@@ -1,3 +1,5 @@
+import { APP_VERSION } from '../version';
+
 interface Props {
   apiKey: string;
   setApiKey: (k: string) => void;
@@ -77,6 +79,9 @@ export default function SettingsPanel({ apiKey, setApiKey, userInfo, isSyncing, 
             </svg>
             Copy Session Log
           </button>
+        </div>
+        <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+          GEA TERMINAL v{APP_VERSION}
         </div>
       </div>
     </>

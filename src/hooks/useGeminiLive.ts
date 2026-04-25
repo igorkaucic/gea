@@ -252,15 +252,15 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
             },
             {
               name: "controlLights",
-              description: "Control Philips Hue smart lights in the user's home via the local hub. You can change scenes, set effects, or turn rooms off.",
+              description: "Control Philips Hue smart lights in the user's home via the local hub. IF YOU DO NOT KNOW WHAT SCENES ARE AVAILABLE, FIRST CALL THIS TOOL WITH cmd='scenes' TO FETCH A LIVE CATALOG FROM THE BRIDGE.",
               parameters: {
                 type: "OBJECT",
                 properties: {
-                  cmd: { type: "STRING", description: "Command to execute. Options: 'multimood' (set multiple rooms to scenes), 'effect' (candle, fire, sparkle), 'off' (turn off)." },
+                  cmd: { type: "STRING", description: "Command to execute. Options: 'scenes' (pull live catalog), 'multimood' (set multiple rooms to scenes), 'effect' (e.g. candle, fire, sparkle), 'off' (turn off)." },
                   args: { 
                     type: "ARRAY", 
                     items: { type: "STRING" },
-                    description: "Arguments for the command. For 'multimood', provide pairs of [room, scene] (e.g. ['living room', 'Aurora', 'kitchen', 'Aurora']). The 'Entertainment Area' consists of 'living room', 'kitchen', 'hallway', and 'balcony'. For 'effect', provide ['room', 'effect']."
+                    description: "Arguments for the command. For 'scenes', leave empty []. For 'multimood', provide pairs of [room, scene] using exact names from the catalog. For 'effect', provide ['room', 'effect']. The user might ask to light up the 'Entertainment Area' (which typically includes the living room, kitchen, hallway, and balcony)."
                   }
                 },
                 required: ["cmd", "args"]

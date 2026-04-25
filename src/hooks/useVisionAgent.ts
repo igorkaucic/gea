@@ -38,7 +38,7 @@ export function useVisionAgent(apiKey: string) {
 
       const response = await ai.models.generateContentStream({
         model: 'gemini-3.1-flash-image-preview',
-        contents: [{ role: 'user', parts: [{ text: prompt + '\n[Generate image as 1:1 square aspect ratio at exactly 512x512 resolution]' }] }],
+        contents: [{ role: 'user', parts: [{ text: prompt + '\n[Generate image as 1:1 square aspect ratio at exactly 512x512 resolution. Before generating the image, you MUST output a short descriptive filename (lowercase, underscores, no extension) inside <filename></filename> tags. Example: <filename>cyberpunk_city</filename>]' }] }],
         config: {
           responseModalities: ['IMAGE', 'TEXT'],
           thinkingConfig: {
@@ -51,6 +51,7 @@ export function useVisionAgent(apiKey: string) {
 
       let imageData: string | null = null;
       let imageMime: string = 'image/png';
+      let fullText = '';
 
       for await (const chunk of response) {
         if (!chunk.candidates || !chunk.candidates[0]?.content?.parts) continue;
@@ -58,10 +59,12 @@ export function useVisionAgent(apiKey: string) {
         for (const part of chunk.candidates[0].content.parts) {
           // Thought text — stream to terminal (gray-white)
           if ((part as any).thought && part.text) {
+            fullText += part.text;
             appendText(jobId, `<span class="v-thought">${part.text}</span>`);
           }
           // Final text response
           else if (part.text) {
+            fullText += part.text;
             appendText(jobId, '\n' + part.text);
           }
           // Image data
@@ -74,9 +77,16 @@ export function useVisionAgent(apiKey: string) {
       }
 
       if (imageData) {
+        let generatedFilename = 'gea_image';
+        const match = fullText.match(/<filename>(.*?)<\/filename>/);
+        if (match && match[1]) {
+          generatedFilename = match[1].trim().replace(/[^a-z0-9_]/g, '');
+        }
+
         const b64Url = `data:${imageMime};base64,${imageData}`;
         const newId = await dbAdd('images', {
           prompt,
+          filename: generatedFilename,
           thumbnail_b64: b64Url,
           full_b64: b64Url,
           timestamp: new Date().toISOString()

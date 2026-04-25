@@ -256,28 +256,51 @@ export function useGoogleDrive() {
     const allImages = await dbGetAll('images');
     if (allImages.length === 0) return;
 
-    const imagesFolderId = await findOrCreateFolder(token, 'Images', rootId);
-    
-    const existingFiles = await listFilesInFolder(token, imagesFolderId);
-    const existingFileMap: Record<string, string> = {};
-    for (const f of existingFiles) existingFileMap[f.name] = f.id;
+    const imagesRootId = await findOrCreateFolder(token, 'Images', rootId);
 
-    const syncedFileNames = new Set<string>();
-
+    // Group images by YYYY-MM
+    const grouped: Record<string, any[]> = {};
     for (const img of allImages) {
-      const fileName = `gea_image_${img.id}.png`;
-      syncedFileNames.add(fileName);
+      const d = new Date(img.timestamp);
+      const folderName = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!grouped[folderName]) grouped[folderName] = [];
+      grouped[folderName].push(img);
+    }
 
-      if (!existingFileMap[fileName]) {
-         await uploadImageFile(token, fileName, img.full_b64, imagesFolderId);
+    const existingFolders = await listFilesInFolder(token, imagesRootId);
+    const existingFolderMap: Record<string, string> = {};
+    for (const f of existingFolders) existingFolderMap[f.name] = f.id;
+
+    const syncedFolderNames = new Set<string>();
+
+    for (const [folderName, images] of Object.entries(grouped)) {
+      syncedFolderNames.add(folderName);
+      const folderId = await findOrCreateFolder(token, folderName, imagesRootId);
+      
+      const existingFiles = await listFilesInFolder(token, folderId);
+      const existingFileMap: Record<string, string> = {};
+      for (const f of existingFiles) existingFileMap[f.name] = f.id;
+
+      const syncedFileNames = new Set<string>();
+
+      for (const img of images) {
+        const baseName = img.filename || `gea_image`;
+        const fileName = `${baseName}_${img.id}.png`;
+        syncedFileNames.add(fileName);
+
+        if (!existingFileMap[fileName]) {
+           await uploadImageFile(token, fileName, img.full_b64, folderId);
+        }
+      }
+
+      for (const [fileName, fileId] of Object.entries(existingFileMap)) {
+        if (!syncedFileNames.has(fileName)) await deleteFile(token, fileId);
       }
     }
 
-    // Delete removed images
-    for (const [fileName, fileId] of Object.entries(existingFileMap)) {
-      if (!syncedFileNames.has(fileName)) {
-        await deleteFile(token, fileId);
-      }
+    // Delete empty month folders
+    for (const [folderName, folderId] of Object.entries(existingFolderMap)) {
+      if (!syncedFolderNames.has(folderName)) await deleteFile(token, folderId);
     }
   };
 

@@ -38,7 +38,7 @@ export function useVisionAgent(apiKey: string) {
 
       const response = await ai.models.generateContentStream({
         model: 'gemini-3.1-flash-image-preview',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        contents: [{ role: 'user', parts: [{ text: prompt + '\n[Generate image as 1:1 square aspect ratio at exactly 512x512 resolution]' }] }],
         config: {
           responseModalities: ['IMAGE', 'TEXT'],
           thinkingConfig: {

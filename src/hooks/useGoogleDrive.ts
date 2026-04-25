@@ -144,6 +144,43 @@ export function useGoogleDrive() {
     return resp.json();
   };
 
+  const uploadImageFile = async (token: string, fileName: string, b64Data: string, folderId: string, existingFileId?: string) => {
+    const mimeType = b64Data.split(';')[0].split(':')[1];
+    const base64String = b64Data.split(',')[1];
+    
+    const metadata: any = { name: fileName, mimeType };
+    if (!existingFileId) metadata.parents = [folderId];
+
+    const boundary = '---gea_boundary_' + Date.now();
+    const body = [
+      `--${boundary}`,
+      'Content-Type: application/json; charset=UTF-8',
+      '',
+      JSON.stringify(metadata),
+      `--${boundary}`,
+      `Content-Type: ${mimeType}`,
+      'Content-Transfer-Encoding: base64',
+      '',
+      base64String,
+      `--${boundary}--`
+    ].join('\r\n');
+
+    const url = existingFileId
+      ? `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=multipart`
+      : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+
+    const resp = await fetch(url, {
+      method: existingFileId ? 'PATCH' : 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': `multipart/related; boundary=${boundary}`
+      },
+      body
+    });
+    if (!resp.ok) throw new Error(`Image Upload failed: ${resp.status}`);
+    return resp.json();
+  };
+
   const deleteFile = async (token: string, fileId: string) => {
     await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
       method: 'DELETE',
@@ -153,14 +190,11 @@ export function useGoogleDrive() {
 
   // --- Core sync logic: Destructive Mirror ---
 
-  const syncNotesToDrive = async (token: string) => {
+  const syncNotesToDrive = async (token: string, rootId: string) => {
     // 1. Get all local notes
     const allNotes = await dbGetAll('notes');
 
-    // 2. Find or create root Gea/ folder
-    const rootId = await findOrCreateFolder(token, GEA_ROOT_FOLDER);
-
-    // 3. Group notes by folder_name
+    // 2. Group notes by folder_name
     const grouped: Record<string, any[]> = {};
     for (const note of allNotes) {
       const folder = note.folder_name || 'Unsorted';
@@ -218,6 +252,35 @@ export function useGoogleDrive() {
     }
   };
 
+  const syncImagesToDrive = async (token: string, rootId: string) => {
+    const allImages = await dbGetAll('images');
+    if (allImages.length === 0) return;
+
+    const imagesFolderId = await findOrCreateFolder(token, 'Images', rootId);
+    
+    const existingFiles = await listFilesInFolder(token, imagesFolderId);
+    const existingFileMap: Record<string, string> = {};
+    for (const f of existingFiles) existingFileMap[f.name] = f.id;
+
+    const syncedFileNames = new Set<string>();
+
+    for (const img of allImages) {
+      const fileName = `gea_image_${img.id}.png`;
+      syncedFileNames.add(fileName);
+
+      if (!existingFileMap[fileName]) {
+         await uploadImageFile(token, fileName, img.full_b64, imagesFolderId);
+      }
+    }
+
+    // Delete removed images
+    for (const [fileName, fileId] of Object.entries(existingFileMap)) {
+      if (!syncedFileNames.has(fileName)) {
+        await deleteFile(token, fileId);
+      }
+    }
+  };
+
   const isSyncingRef = useRef(false);
   const queuedSyncRef = useRef(false);
 
@@ -227,8 +290,15 @@ export function useGoogleDrive() {
     setIsSyncing(true);
     try {
       const token = await getToken(true);
-      await syncNotesToDrive(token);
-      window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '✅ Notes synced to Google Drive!'}));
+      const rootId = await findOrCreateFolder(token, GEA_ROOT_FOLDER);
+      
+      // Sync Notes
+      await syncNotesToDrive(token, rootId);
+      
+      // Sync Images
+      await syncImagesToDrive(token, rootId);
+      
+      window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '✅ Notes & Images synced to Google Drive!'}));
     } catch (e: any) {
       window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '❌ Drive Error: ' + e.message}));
       console.error(e);
@@ -258,8 +328,10 @@ export function useGoogleDrive() {
           }
         }
         if (token) {
-          await syncNotesToDrive(token);
-          console.log('🔄 [DRIVE SYNC] Silent auto-sync successfully uploaded .md files to cloud.');
+          const rootId = await findOrCreateFolder(token, GEA_ROOT_FOLDER);
+          await syncNotesToDrive(token, rootId);
+          await syncImagesToDrive(token, rootId);
+          console.log('🔄 [DRIVE SYNC] Silent auto-sync successfully uploaded files to cloud.');
           window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '✅ Auto-sync complete!'}));
         }
       } while (queuedSyncRef.current);

@@ -38,7 +38,7 @@ export function useVisionAgent(apiKey: string) {
 
       const response = await ai.models.generateContentStream({
         model: 'gemini-3.1-flash-image-preview',
-        contents: [{ role: 'user', parts: [{ text: prompt + '\n[Generate image as 1:1 square aspect ratio at exactly 512x512 resolution. Before generating the image, you MUST output a short descriptive filename (lowercase, underscores, no extension) inside <filename></filename> tags. Example: <filename>cyberpunk_city</filename>]' }] }],
+        contents: [{ role: 'user', parts: [{ text: prompt + '\n[Generate image as 1:1 square aspect ratio at exactly 512x512 resolution. IMPORTANT: Stream your detailed creative thoughts as usual first, then right before generating the image, output a short descriptive filename (lowercase, underscores, no extension) inside <filename></filename> tags.]' }] }],
         config: {
           responseModalities: ['IMAGE', 'TEXT'],
           thinkingConfig: {
@@ -60,12 +60,12 @@ export function useVisionAgent(apiKey: string) {
           // Thought text — stream to terminal (gray-white)
           if ((part as any).thought && part.text) {
             fullText += part.text;
-            appendText(jobId, `<span class="v-thought">${part.text}</span>`);
+            appendText(jobId, `<span class="v-thought">${part.text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span>`);
           }
           // Final text response
           else if (part.text) {
             fullText += part.text;
-            appendText(jobId, '\n' + part.text);
+            appendText(jobId, '\n' + part.text.replace(/</g, '&lt;').replace(/>/g, '&gt;'));
           }
           // Image data
           if (part.inlineData && part.inlineData.data) {

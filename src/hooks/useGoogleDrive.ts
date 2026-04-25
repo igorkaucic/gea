@@ -46,12 +46,21 @@ export function useGoogleDrive() {
 
   const getToken = async (interactive: boolean = false): Promise<string> => {
     return new Promise((resolve, reject) => {
-      if (!initTokenClient()) return reject('No SDK');
+      if (!initTokenClient()) return reject(new Error('No SDK'));
 
       const tc = tokenClientRef.current;
+      
+      let timeoutId: any = null;
+      if (!interactive) {
+        timeoutId = setTimeout(() => {
+          reject(new Error('Popup blocked or timed out by browser.'));
+        }, 3000);
+      }
+
       tc.callback = async (resp: any) => {
+        if (timeoutId) clearTimeout(timeoutId);
         if (resp.error) {
-          reject(resp.error);
+          reject(new Error(resp.error));
           return;
         }
         cachedTokenRef.current = resp.access_token;
@@ -361,8 +370,9 @@ export function useGoogleDrive() {
         if (!token) {
           try {
             token = await getToken();
-          } catch {
-            break;
+          } catch (err: any) {
+            window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '⚠️ Auto-sync failed: Please reconnect Google Drive in Settings.'}));
+            throw err;
           }
         }
         if (token) {

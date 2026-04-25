@@ -42,6 +42,7 @@ export function useVisionAgent(apiKey: string) {
         config: {
           responseModalities: ['IMAGE', 'TEXT'],
           thinkingConfig: {
+            // @ts-ignore - The genai SDK types are missing HIGH but the API requires it
             thinkingLevel: 'HIGH',
             includeThoughts: true
           }

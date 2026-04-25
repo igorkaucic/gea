@@ -51,8 +51,7 @@ export default function HomePanel({ isActive, thoughts, statusText, UIState, vis
     // Find the inner transcript div
     const transcript = el.querySelector('.ai-transcript');
     if (transcript) {
-      const cursor = isActive ? '<span class="term-cursor">█</span>' : '';
-      transcript.innerHTML = (thoughts || '<span style="opacity:0.3">$ awaiting connection...</span>') + cursor;
+      transcript.innerHTML = thoughts || '<span style="opacity:0.3">$ awaiting connection...</span>';
     }
     el.scrollTop = el.scrollHeight;
     requestAnimationFrame(() => { if (el) el.scrollTop = el.scrollHeight; });
@@ -102,9 +101,7 @@ export default function HomePanel({ isActive, thoughts, statusText, UIState, vis
         <div ref={visionRef} className="term-body term-body-vision">
           <div className="vision-transcript"
             dangerouslySetInnerHTML={{
-              __html: visionThoughts
-                ? visionThoughts + (isGenerating ? '<span class="term-cursor amber">█</span>' : '')
-                : '<span style="opacity:0.3">$ standby — waiting for image dispatch...</span>'
+              __html: visionThoughts || '<span style="opacity:0.3">$ standby — waiting for image dispatch...</span>'
             }}
           />
         </div>

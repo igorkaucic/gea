@@ -20,7 +20,7 @@ function App() {
 
   const { isActive, isMuted, UIState, statusText, thoughts, connect, stopAll, toggleMute } = useGeminiLive(apiKey, 'Leda');
   const { syncDrive, trySilentSync, isSyncing, userInfo, logoutDrive } = useGoogleDrive();
-  const { isGenerating, visionThoughts, jobs, generateImage, clearVisionThoughts } = useVisionAgent(apiKey);
+  const { isGenerating, visionThoughts, jobs, generateImage } = useVisionAgent(apiKey);
 
   const aiHasSpoken = useRef(false);
 

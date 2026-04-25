@@ -54,7 +54,6 @@ export default function NotesPanel({ notes, loadData, trySilentSync, isActive }:
 
   const undoDelete = async () => {
     if (!deletedNote) return;
-    const { id, ...rest } = deletedNote;
     await dbPut('notes', deletedNote);
     setDeletedNote(null);
     loadData();

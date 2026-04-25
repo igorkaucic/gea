@@ -427,24 +427,6 @@ html, body {
   text-shadow: 0 0 6px var(--amber-glow);
 }
 
-/* ===== BLINKING TERMINAL CURSOR ===== */
-
-.term-cursor {
-  display: inline;
-  color: var(--phosphor);
-  animation: blink-cursor 1s step-end infinite;
-  text-shadow: 0 0 8px var(--phosphor-glow);
-}
-
-.term-cursor.amber {
-  color: var(--amber);
-  text-shadow: 0 0 8px var(--amber-glow);
-}
-
-@keyframes blink-cursor {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
 
 .connect-btn {
   width: 100%;

@@ -42,7 +42,7 @@ export function useVisionAgent(apiKey: string) {
         config: {
           responseModalities: ['IMAGE', 'TEXT'],
           // @ts-ignore - The genai SDK types might be incomplete for imageConfig
-          imageConfig: { aspectRatio: "1:1", imageSize: "512", personGeneration: "" },
+          imageConfig: { aspectRatio: "1:1", imageSize: "512" },
           thinkingConfig: {
             // @ts-ignore - The genai SDK types are missing HIGH but the API requires it
             thinkingLevel: 'HIGH',

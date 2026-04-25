@@ -33,6 +33,11 @@ export function useVisionAgent(apiKey: string) {
     jobsRef.current = [...jobsRef.current, newJob];
     setJobs([...jobsRef.current]);
 
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    if (isIOS) {
+      appendText(jobId, `\n<span style="color:rgba(255,255,255,0.3); font-style:italic;">[ ℹ️ iOS Safari buffers large data streams. Thoughts and image will materialize simultaneously in ~15s. Standby... ]</span>\n`);
+    }
+
     try {
       const ai = new GoogleGenAI({ apiKey });
 

@@ -249,6 +249,22 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
                 },
                 required: ["prompt"]
               }
+            },
+            {
+              name: "controlLights",
+              description: "Control Philips Hue smart lights in the user's home via the local hub. You can change scenes, set effects, or turn rooms off.",
+              parameters: {
+                type: "OBJECT",
+                properties: {
+                  cmd: { type: "STRING", description: "Command to execute. Options: 'multimood' (set multiple rooms to scenes), 'effect' (candle, fire, sparkle), 'off' (turn off)." },
+                  args: { 
+                    type: "ARRAY", 
+                    items: { type: "STRING" },
+                    description: "Arguments for the command. For 'multimood', provide pairs of [room, scene] (e.g. ['living room', 'Aurora', 'kitchen', 'Aurora']). The 'Entertainment Area' consists of 'living room', 'kitchen', 'hallway', and 'balcony'. For 'effect', provide ['room', 'effect']."
+                  }
+                },
+                required: ["cmd", "args"]
+              }
             }
           ]
         }
@@ -430,6 +446,29 @@ Always verify objective truths using your search tool.`
             } catch (err) {
               console.error("DB Delete Error:", err);
               result = { result: "Error deleting: " + err };
+            }
+          }
+
+          else if (call.name === "controlLights") {
+            try {
+              const args = call.args || {};
+              const cmd = args.cmd;
+              const cmdArgs = args.args || [];
+              
+              const resp = await fetch("https://192.168.178.20:5055", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ cmd: cmd, args: cmdArgs })
+              });
+              
+              if (resp.ok) {
+                const data = await resp.json();
+                result = { result: `Success. Response: ${data.stdout}` };
+              } else {
+                result = { result: `Failed with status ${resp.status}` };
+              }
+            } catch (e: any) {
+              result = { result: "Failed to connect to local Hue bridge: " + e.message };
             }
           }
 

@@ -421,8 +421,8 @@ Always verify objective truths using your search tool.`
               const resultText = filtered.length === 0
                 ? 'No notes found for that query.'
                 : filtered.map((n: any, i: number) =>
-                    `[${i + 1}] ID:${n.id} | ${n.title || 'Untitled'} | Folder: ${n.folder_name || 'N/A'} | Date: ${n.timestamp ? new Date(n.timestamp).toLocaleDateString() : 'N/A'} | Body: ${(n.body || '').substring(0, 100)}...`
-                  ).join('\n');
+                    `[${i + 1}] ID:${n.id} | ${n.title || 'Untitled'} | Folder: ${n.folder_name || 'N/A'} | Date: ${n.timestamp ? new Date(n.timestamp).toLocaleDateString() : 'N/A'}\nBody: ${n.body || '(empty)'}`
+                  ).join('\n\n');
 
               console.log(`Found ${filtered.length} notes for query: "${query}"`);
               result = { result: `Found ${filtered.length} notes:\n${resultText}` };

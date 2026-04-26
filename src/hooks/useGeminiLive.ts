@@ -171,7 +171,7 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
           functionDeclarations: [
             {
               name: "saveNote",
-              description: "Save a note, idea, or concept.",
+              description: "Save a note, idea, concept, OR schedule a reminder/calendar event.",
               parameters: {
                 type: "OBJECT",
                 properties: {

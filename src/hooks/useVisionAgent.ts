@@ -46,10 +46,12 @@ export function useVisionAgent(apiKey: string) {
         contents: [{ role: 'user', parts: [{ text: prompt + '\n[Generate image as 1:1 square aspect ratio at exactly 512x512 resolution. IMPORTANT: Stream your detailed creative thoughts as usual first, then right before generating the image, output a short descriptive filename (lowercase, underscores, no extension) inside <filename></filename> tags.]' }] }],
         config: {
           responseModalities: ['IMAGE', 'TEXT'],
-          // @ts-ignore - Official resolution limits for image preview models
-          outputImageWidth: 512,
-          // @ts-ignore
-          outputImageHeight: 512,
+          // @ts-ignore - Imagen API parameters
+          imageConfig: {
+            aspectRatio: "1:1",
+            // @ts-ignore
+            resolution: "512"
+          },
           thinkingConfig: {
             // @ts-ignore - The genai SDK types are missing HIGH but the API requires it
             thinkingLevel: 'HIGH',

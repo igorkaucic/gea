@@ -28,7 +28,7 @@ const ASCII_LOGO = ` ██████╗ ███████╗ ████
  ╚═════╝ ╚══════╝╚═╝  ╚═╝`;
 
 /* Reusable fake terminal chrome bar */
-function TerminalChrome({ title, color, isLive }: { title: string; color: string; isLive?: boolean }) {
+function TerminalChrome({ title, color, isLive, onPasteAction }: { title: string; color: string; isLive?: boolean, onPasteAction?: () => void }) {
   return (
     <div className="term-chrome">
       <div className="term-dots">
@@ -37,7 +37,18 @@ function TerminalChrome({ title, color, isLive }: { title: string; color: string
         <span className="term-dot" style={{ background: '#28C840' }} />
       </div>
       <span className="term-title" style={{ color }}>{title}</span>
-      {isLive && <span className="term-live-badge">● LIVE</span>}
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {onPasteAction && (
+          <button 
+            onClick={onPasteAction}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '14px', opacity: 0.8, color: 'var(--text)' }}
+            title="Paste text to Gea"
+          >
+            📋
+          </button>
+        )}
+        {isLive && <span className="term-live-badge">● LIVE</span>}
+      </div>
     </div>
   );
 }
@@ -78,6 +89,15 @@ export default function HomePanel({ isActive, thoughts, statusText, UIState, vis
           title="gea@core:~"
           color="var(--phosphor)"
           isLive={isActive && UIState !== 'ready'}
+          onPasteAction={isActive && sendTextMessage ? async () => {
+            try {
+              const text = await navigator.clipboard.readText();
+              if (text) sendTextMessage(text);
+              window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '📋 Tekst zalijepljen i poslan Gei!' }));
+            } catch(e) {
+              window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '❌ Clipboard access denied' }));
+            }
+          } : undefined}
         />
         <div ref={transcriptRef} className="term-body">
           <div className="ai-transcript" />
@@ -108,35 +128,14 @@ export default function HomePanel({ isActive, thoughts, statusText, UIState, vis
         </div>
       </div>
 
-      {/* ═══ CONNECT BUTTON & PASTE BUTTON ═══ */}
-      <div style={{ display: 'flex', gap: '8px', width: '100%', margin: '0 10px', paddingBottom: '10px' }}>
-        <button
-          className={`connect-btn ${isActive ? 'active' : ''}`}
-          onClick={isActive ? stopAll : connect}
-          id="btn-connect"
-          style={{ flex: 1, margin: 0 }}
-        >
-          {isActive ? '● LIVE SESSION ACTIVE' : '▶ START SESSION'}
-        </button>
-        {isActive && sendTextMessage && (
-          <button 
-            className="connect-btn"
-            style={{ width: '60px', padding: '0', margin: 0, background: 'var(--surface-light)', border: '1px solid var(--border)' }}
-            onClick={async () => {
-              try {
-                const text = await navigator.clipboard.readText();
-                if (text) sendTextMessage(text);
-                window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '📋 Tekst zalijepljen i poslan Gei!' }));
-              } catch(e) {
-                window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '❌ Clipboard access denied' }));
-              }
-            }}
-            title="Paste and send clipboard text to Gea"
-          >
-            📋
-          </button>
-        )}
-      </div>
+      {/* ═══ CONNECT BUTTON ═══ */}
+      <button
+        className={`connect-btn ${isActive ? 'active' : ''}`}
+        onClick={isActive ? stopAll : connect}
+        id="btn-connect"
+      >
+        {isActive ? '● LIVE SESSION ACTIVE' : '▶ START SESSION'}
+      </button>
     </div>
   );
 }

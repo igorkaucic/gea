@@ -74,10 +74,14 @@ function App() {
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
+    const handleOpenLightbox = () => setActivePage('gallery');
+    window.addEventListener('OPEN_LIGHTBOX', handleOpenLightbox);
+
     return () => { 
       window.removeEventListener('SHOW_TOAST', handleToast); 
       window.removeEventListener('DATA_CHANGED', handleDataChanged); 
       window.removeEventListener('GENERATE_IMAGE', handleGenerateImage); 
+      window.removeEventListener('OPEN_LIGHTBOX', handleOpenLightbox);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       if (syncDebounce) clearTimeout(syncDebounce);
     };

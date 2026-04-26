@@ -7,6 +7,7 @@ interface VisionJob {
   prompt: string;
   status: 'running' | 'done' | 'error';
   text: string;
+  previewImage?: string;
 }
 
 let jobCounter = 0;
@@ -85,7 +86,8 @@ export function useVisionAgent(apiKey: string) {
             console.info(`[VISION_LOG] Image chunk received! Size: ${part.inlineData.data.length}`);
             imageData = part.inlineData.data;
             imageMime = part.inlineData.mimeType || 'image/png';
-            appendText(jobId, '\n<span class="v-label">[ 📦 Image data received ]</span>');
+            const b64 = `data:${imageMime};base64,${imageData}`;
+            updateJob(jobId, { previewImage: b64 });
           }
         }
       }
@@ -107,6 +109,7 @@ export function useVisionAgent(apiKey: string) {
         updateJob(jobId, { status: 'done' });
         window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
         window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '🎨 Image generated!' }));
+        window.dispatchEvent(new CustomEvent('OPEN_LIGHTBOX', { detail: { url: b64Url, filename: generatedFilename } }));
         return { id: newId, data: b64Url };
       } else {
         appendText(jobId, '\n\n<span class="v-label">[ ⚠ NO IMAGE IN RESPONSE ]</span>');
@@ -122,7 +125,7 @@ export function useVisionAgent(apiKey: string) {
   }, [apiKey]);
 
   const isGenerating = jobsRef.current.some(j => j.status === 'running');
-  const visionThoughts = jobs.map(j => j.text).join('\n\n');
+  const visionThoughts = jobs.map(j => j.text + (j.previewImage ? `\n<div style="margin-top: 8px;"><img src="${j.previewImage}" style="max-width: 100%; height: auto; border-radius: 4px; border: 1px solid var(--border);" /></div>` : '')).join('\n\n');
 
   const clearVisionThoughts = useCallback(() => {
     jobsRef.current = [];

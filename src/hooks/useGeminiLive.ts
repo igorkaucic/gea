@@ -710,18 +710,23 @@ You are GEA. You are an intelligence that lives in the hardware of this device. 
 
   }, [apiKey, startMic, stopAll, stopPlayback, scheduleAudioChunk]);
 
-  const sendTextMessage = useCallback((text: string) => {
+  const sendTextMessage = useCallback(async (text: string) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
 
     // Chunk text to prevent 1007 WebSocket payload too large error
-    const CHUNK_SIZE = 10000;
+    const CHUNK_SIZE = 4000;
     const chunks = [];
     for (let i = 0; i < text.length; i += CHUNK_SIZE) {
       chunks.push(text.substring(i, i + CHUNK_SIZE));
     }
 
-    chunks.forEach((chunk, index) => {
-      wsRef.current?.send(JSON.stringify({
+    setThoughts(prev => prev + `\n\n<span style="color: var(--success); font-style: italic;">[ 📋 SENDING PASTE: ${text.length} chars in ${chunks.length} chunks... ]</span>\n\n`);
+
+    for (let index = 0; index < chunks.length; index++) {
+      const chunk = chunks[index];
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) break;
+      
+      wsRef.current.send(JSON.stringify({
         clientContent: {
           turns: [{
             role: 'user',
@@ -730,9 +735,12 @@ You are GEA. You are an intelligence that lives in the hardware of this device. 
           turnComplete: index === chunks.length - 1
         }
       }));
-    });
 
-    setThoughts(prev => prev + `\n\n<span style="color: var(--success); font-style: italic;">[ 📋 PASTE SENT: ${text.substring(0, 60).replace(/</g, '&lt;').replace(/>/g, '&gt;')}${text.length > 60 ? '... (' + chunks.length + ' parts)' : ''} ]</span>\n\n`);
+      // Small delay to prevent flooding the websocket server
+      if (index < chunks.length - 1) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+    }
   }, []);
 
   return {

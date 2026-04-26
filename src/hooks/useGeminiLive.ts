@@ -241,11 +241,11 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
             },
             {
               name: "generateImage",
-              description: "Generate an image. Write a detailed prompt. Runs async in background. Can call multiple times.",
+              description: "Generate an image based on user request.",
               parameters: {
                 type: "OBJECT",
                 properties: {
-                  prompt: { type: "STRING", description: "Detailed image prompt with style, composition, colors, lighting." }
+                  prompt: { type: "STRING", description: "The image generation prompt." }
                 },
                 required: ["prompt"]
               }
@@ -257,8 +257,8 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
                 type: "OBJECT",
                 properties: {
                   cmd: { type: "STRING", description: "Command to execute. Options: 'scenes' (pull live catalog of rooms, scenes, and effects), 'multimood' (set multiple rooms to scenes), 'effect' (apply a dynamic effect), 'off' (turn off)." },
-                  args: { 
-                    type: "ARRAY", 
+                  args: {
+                    type: "ARRAY",
                     items: { type: "STRING" },
                     description: "Arguments for the command. For 'scenes', leave empty []. For 'multimood', provide pairs of [room, scene] using exact names from the catalog. For 'effect', provide ['room', 'effect_name'] using exact names from the catalog. The user might ask to light up the 'Entertainment Area' (which typically includes the living room, kitchen, hallway, and balcony)."
                   }
@@ -360,7 +360,7 @@ Always verify objective truths using your search tool.`
         if (wsRef.current === ws) {
           wsRef.current = null;
         }
-        try { ws.close(); } catch (e) {}
+        try { ws.close(); } catch (e) { }
         setTimeout(() => connect(true), 100);
         return;
       }
@@ -421,8 +421,8 @@ Always verify objective truths using your search tool.`
               const resultText = filtered.length === 0
                 ? 'No notes found for that query.'
                 : filtered.map((n: any, i: number) =>
-                    `[${i + 1}] ID:${n.id} | ${n.title || 'Untitled'} | Folder: ${n.folder_name || 'N/A'} | Date: ${n.timestamp ? new Date(n.timestamp).toLocaleDateString() : 'N/A'}\nBody: ${n.body || '(empty)'}`
-                  ).join('\n\n');
+                  `[${i + 1}] ID:${n.id} | ${n.title || 'Untitled'} | Folder: ${n.folder_name || 'N/A'} | Date: ${n.timestamp ? new Date(n.timestamp).toLocaleDateString() : 'N/A'}\nBody: ${n.body || '(empty)'}`
+                ).join('\n\n');
 
               console.log(`Found ${filtered.length} notes for query: "${query}"`);
               result = { result: `Found ${filtered.length} notes:\n${resultText}` };
@@ -454,13 +454,13 @@ Always verify objective truths using your search tool.`
               const args = call.args || {};
               const cmd = args.cmd;
               const cmdArgs = args.args || [];
-              
+
               const resp = await fetch("https://192.168.178.20:5056", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ cmd: cmd, args: cmdArgs })
               });
-              
+
               if (resp.ok) {
                 const data = await resp.json();
                 result = { result: `Success. Response: ${data.stdout}` };

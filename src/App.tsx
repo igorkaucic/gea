@@ -41,7 +41,20 @@ function App() {
   useEffect(() => {
     initDB().then(loadData).catch(console.error);
     const handleToast = (e: any) => { setToast(e.detail); setTimeout(() => setToast(null), 4000); };
-    const handleDataChanged = () => { loadData(); };
+
+    // Debounced sync on data changes (manual deletes, etc.)
+    let syncDebounce: any = null;
+    const handleDataChanged = () => {
+      loadData();
+      // Auto-sync after manual changes — debounce 3s, skip if mid-call
+      if (syncDebounce) clearTimeout(syncDebounce);
+      syncDebounce = setTimeout(() => {
+        if (!isActive && !isGenerating) {
+          trySilentSync();
+        }
+      }, 3000);
+    };
+
     window.addEventListener('SHOW_TOAST', handleToast);
     window.addEventListener('DATA_CHANGED', handleDataChanged);
     const handleGenerateImage = (e: any) => { generateImage(e.detail); };
@@ -58,8 +71,9 @@ function App() {
       window.removeEventListener('DATA_CHANGED', handleDataChanged); 
       window.removeEventListener('GENERATE_IMAGE', handleGenerateImage); 
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      if (syncDebounce) clearTimeout(syncDebounce);
     };
-  }, []);
+  }, [isActive, isGenerating]);
 
   const installApp = async () => {
     if (!deferredPrompt) return;

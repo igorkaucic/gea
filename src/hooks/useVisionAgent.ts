@@ -45,7 +45,7 @@ export function useVisionAgent(apiKey: string) {
         model: 'gemini-3.1-flash-image-preview',
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
-          systemInstruction: 'Generate images in 1:1 square aspect ratio. Stream your detailed creative thoughts first, then right before generating the image, output a short descriptive filename (lowercase, underscores, no extension) inside <filename></filename> tags.',
+          systemInstruction: 'Generate images in 1:1 square aspect ratio. Before generating the image, output a short descriptive filename (lowercase, underscores, no extension) inside <filename></filename> tags.',
           responseModalities: ['IMAGE', 'TEXT'],
           thinkingConfig: {
             // @ts-ignore - The genai SDK types are missing HIGH but the API requires it

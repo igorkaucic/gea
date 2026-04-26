@@ -127,7 +127,7 @@ function App() {
           <HomePanel isActive={isActive} thoughts={thoughts} statusText={statusText} UIState={UIState} visionThoughts={visionThoughts} isGenerating={isGenerating} jobs={jobs} connect={connect} stopAll={stopAll} />
         </div>
         <div className={`page ${activePage === 'gallery' ? 'active' : ''}`}>
-          <GalleryPanel images={images} />
+          <GalleryPanel images={images} loadData={loadData} />
         </div>
         <div className={`page ${activePage === 'notes' ? 'active' : ''}`}>
           <NotesPanel notes={notes} loadData={loadData} trySilentSync={trySilentSync} isActive={isActive} />

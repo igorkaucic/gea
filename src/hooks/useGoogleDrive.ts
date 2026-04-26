@@ -12,7 +12,7 @@ export function useGoogleDrive() {
     return saved ? JSON.parse(saved) : null;
   });
   const tokenClientRef = useRef<any>(null);
-  const cachedTokenRef = useRef<string | null>(null);
+  const cachedTokenRef = useRef<string | null>(localStorage.getItem('gdrive_token'));
 
   const initTokenClient = () => {
     if (tokenClientRef.current) return true;
@@ -64,6 +64,7 @@ export function useGoogleDrive() {
           return;
         }
         cachedTokenRef.current = resp.access_token;
+        localStorage.setItem('gdrive_token', resp.access_token);
         await fetchUserInfo(resp.access_token);
         resolve(resp.access_token);
       };
@@ -83,6 +84,12 @@ export function useGoogleDrive() {
       ...options,
       headers: { 'Authorization': 'Bearer ' + token, ...(options.headers || {}) }
     });
+    if (resp.status === 401) {
+      // Token expired — clear it so next sync prompts re-auth
+      cachedTokenRef.current = null;
+      localStorage.removeItem('gdrive_token');
+      throw new Error('Token expired. Reconnect in Settings.');
+    }
     if (!resp.ok) throw new Error(`Drive API error: ${resp.status} ${resp.statusText}`);
     return resp.json();
   };
@@ -448,7 +455,9 @@ export function useGoogleDrive() {
       } while (queuedSyncRef.current);
     } catch (e: any) {
       cachedTokenRef.current = null;
+      localStorage.removeItem('gdrive_token');
       console.warn('Silent sync failed:', e.message);
+      window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '⚠️ Sync failed: ' + e.message}));
     } finally {
       isSyncingRef.current = false;
       setIsSyncing(false);
@@ -457,6 +466,7 @@ export function useGoogleDrive() {
 
   const logoutDrive = useCallback(() => {
     cachedTokenRef.current = null;
+    localStorage.removeItem('gdrive_token');
     localStorage.removeItem('gdrive_user');
     setUserInfo(null);
   }, []);

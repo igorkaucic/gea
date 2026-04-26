@@ -79,16 +79,29 @@ export function useGoogleDrive() {
 
   // --- Google Drive API helpers ---
 
-  const driveRequest = async (token: string, url: string, options: RequestInit = {}) => {
+  const driveRequest = async (token: string, url: string, options: RequestInit = {}): Promise<any> => {
     const resp = await fetch(url, {
       ...options,
       headers: { 'Authorization': 'Bearer ' + token, ...(options.headers || {}) }
     });
     if (resp.status === 401) {
-      // Token expired — clear it so next sync prompts re-auth
-      cachedTokenRef.current = null;
-      localStorage.removeItem('gdrive_token');
-      throw new Error('Token expired. Reconnect in Settings.');
+      // Token expired — try silent refresh before giving up
+      console.warn('[DRIVE] Token expired. Attempting silent refresh...');
+      try {
+        const newToken = await getToken(false);
+        // Retry the request with the fresh token
+        const retry = await fetch(url, {
+          ...options,
+          headers: { 'Authorization': 'Bearer ' + newToken, ...(options.headers || {}) }
+        });
+        if (!retry.ok) throw new Error(`Drive API error after refresh: ${retry.status}`);
+        return retry.json();
+      } catch (refreshErr) {
+        // Silent refresh failed — clear everything
+        cachedTokenRef.current = null;
+        localStorage.removeItem('gdrive_token');
+        throw new Error('Session expired. Tap Sync in Settings to reconnect.');
+      }
     }
     if (!resp.ok) throw new Error(`Drive API error: ${resp.status} ${resp.statusText}`);
     return resp.json();

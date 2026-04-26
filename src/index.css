@@ -617,9 +617,9 @@ html, body {
 }
 
 .lightbox img {
-  max-width: 100%;
-  max-height: 95vh;
-  object-fit: contain;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
   will-change: transform, opacity;
 }
 

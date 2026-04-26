@@ -50,7 +50,7 @@ export function useVisionAgent(apiKey: string) {
           imageConfig: {
             aspectRatio: "1:1",
             // @ts-ignore
-            resolution: "512"
+            imageSize: "0.5K"
           },
           thinkingConfig: {
             // @ts-ignore - The genai SDK types are missing HIGH but the API requires it

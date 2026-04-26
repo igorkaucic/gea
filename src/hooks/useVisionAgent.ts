@@ -98,19 +98,43 @@ export function useVisionAgent(apiKey: string) {
           generatedFilename = match[1].trim().replace(/[^a-z0-9_]/g, '');
         }
 
-        const b64Url = `data:${imageMime};base64,${imageData}`;
+        let finalB64Url = `data:${imageMime};base64,${imageData}`;
+
+        // Downscale to 512x512 locally to bypass API bug
+        try {
+          finalB64Url = await new Promise<string>((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+              const canvas = document.createElement('canvas');
+              canvas.width = 512;
+              canvas.height = 512;
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(img, 0, 0, 512, 512);
+                resolve(canvas.toDataURL('image/webp', 0.85));
+              } else {
+                resolve(finalB64Url);
+              }
+            };
+            img.onerror = reject;
+            img.src = finalB64Url;
+          });
+        } catch (e) {
+          console.warn("Local downscale failed, using original size.", e);
+        }
+
         const newId = await dbAdd('images', {
           prompt,
           filename: generatedFilename,
-          thumbnail_b64: b64Url,
-          full_b64: b64Url,
+          thumbnail_b64: finalB64Url,
+          full_b64: finalB64Url,
           timestamp: new Date().toISOString()
         });
         appendText(jobId, `\n\n<span class="v-label">[ ✅ IMAGE SAVED — ID: ${newId} ]</span>`);
         updateJob(jobId, { status: 'done' });
         window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
         window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '🎨 Image generated!' }));
-        return { id: newId, data: b64Url };
+        return { id: newId, data: finalB64Url };
       } else {
         appendText(jobId, '\n\n<span class="v-label">[ ⚠ NO IMAGE IN RESPONSE ]</span>');
         updateJob(jobId, { status: 'error' });

@@ -4,9 +4,10 @@ interface Props {
   notes: any[];
   images: any[];
   onNavigateToNotes: (month: Date, day: number) => void;
+  onNavigateToGallery: () => void;
 }
 
-export default function CalendarPanel({ notes, images, onNavigateToNotes }: Props) {
+export default function CalendarPanel({ notes, images, onNavigateToNotes, onNavigateToGallery }: Props) {
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [selectedDay, setSelectedDay] = useState<number | null>(new Date().getDate());
 
@@ -42,7 +43,7 @@ export default function CalendarPanel({ notes, images, onNavigateToNotes }: Prop
   for (let i = 1; i <= remaining; i++) cells.push({ day: i, type: 'next' });
 
   // Events for selected day
-  const events: { type: string; time: string; title: string; sub?: string; thumbnail?: string }[] = [];
+  const events: { type: string; time: string; title: string; sub?: string; thumbnail?: string; full_b64?: string; filename?: string; }[] = [];
   if (selectedDay) {
     for (const n of notes) {
       const d = new Date(n.timestamp);
@@ -50,12 +51,12 @@ export default function CalendarPanel({ notes, images, onNavigateToNotes }: Prop
         events.push({ type: 'note', time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), title: n.title || 'Untitled', sub: n.folder_name });
       }
     }
-    for (const img of images) {
-      const d = new Date(img.timestamp);
-      if (d.getDate() === selectedDay && d.getMonth() === month && d.getFullYear() === year) {
-        events.push({ type: 'image', time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), title: 'Generated Image', sub: (img.prompt || '').substring(0, 60), thumbnail: img.thumbnail_b64 });
+      for (const img of images) {
+        const d = new Date(img.timestamp);
+        if (d.getDate() === selectedDay && d.getMonth() === month && d.getFullYear() === year) {
+          events.push({ type: 'image', time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), title: 'Generated Image', sub: (img.prompt || '').substring(0, 60), thumbnail: img.thumbnail_b64, full_b64: img.full_b64, filename: img.filename });
+        }
       }
-    }
     events.sort((a, b) => a.time.localeCompare(b.time));
   }
 
@@ -114,8 +115,14 @@ export default function CalendarPanel({ notes, images, onNavigateToNotes }: Prop
                   <div
                     key={i}
                     className="calendar-event"
+                    style={{ cursor: 'pointer' }}
                     onClick={() => {
-                      if (ev.type === 'note') onNavigateToNotes(new Date(year, month, 1), selectedDay);
+                      if (ev.type === 'note') {
+                        onNavigateToNotes(new Date(year, month, 1), selectedDay);
+                      } else if (ev.type === 'image' && ev.full_b64) {
+                        window.dispatchEvent(new CustomEvent('OPEN_LIGHTBOX', { detail: { url: ev.full_b64, filename: ev.filename } }));
+                        onNavigateToGallery();
+                      }
                     }}
                   >
                     <div className="calendar-event-dot" style={{ background: ev.type === 'note' ? 'var(--phosphor)' : 'var(--amber)' }} />

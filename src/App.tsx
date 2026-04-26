@@ -155,7 +155,7 @@ function App() {
           <NotesPanel notes={notes} loadData={loadData} trySilentSync={trySilentSync} isActive={isActive} />
         </div>
         <div className={`page ${activePage === 'calendar' ? 'active' : ''}`}>
-          <CalendarPanel notes={notes} images={images} onNavigateToNotes={handleNavigateToNotes} />
+          <CalendarPanel notes={notes} images={images} onNavigateToNotes={handleNavigateToNotes} onNavigateToGallery={() => setActivePage('gallery')} />
         </div>
         <div className={`page ${activePage === 'settings' ? 'active' : ''}`}>
           <SettingsPanel apiKey={apiKey} setApiKey={setApiKey} userInfo={userInfo} isSyncing={isSyncing} syncDrive={syncDrive} logoutDrive={logoutDrive} copyLogs={copyLogs} />

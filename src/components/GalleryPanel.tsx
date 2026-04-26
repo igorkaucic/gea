@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { dbDelete } from '../db/db';
 
 interface Props {
@@ -24,6 +24,16 @@ export default function GalleryPanel({ images, loadData }: Props) {
       imgRef.current.style.transform = `translate(${s.x}px, ${s.y}px) scale(${s.scale})`;
     }
   };
+
+  // ─── External Lightbox API ───
+  useEffect(() => {
+    const handleOpenLightbox = (e: any) => {
+      setFullImage(e.detail);
+      stateRef.current = { scale: 1, x: 0, y: 0, lastDist: 0, startX: 0, startY: 0, dragging: false, pinching: false };
+    };
+    window.addEventListener('OPEN_LIGHTBOX', handleOpenLightbox);
+    return () => window.removeEventListener('OPEN_LIGHTBOX', handleOpenLightbox);
+  }, []);
 
   // ─── Long-press handlers ───
   const startLongPress = useCallback((id: number) => {

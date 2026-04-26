@@ -710,6 +710,20 @@ You are GEA. You are an intelligence that lives in the hardware of this device. 
 
   }, [apiKey, startMic, stopAll, stopPlayback, scheduleAudioChunk]);
 
+  const sendTextMessage = useCallback((text: string) => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+    wsRef.current.send(JSON.stringify({
+      clientContent: {
+        turns: [{
+          role: 'user',
+          parts: [{ text }]
+        }],
+        turnComplete: true
+      }
+    }));
+    setThoughts(prev => prev + `\n\n<span style="color: var(--success); font-style: italic;">[ 📋 PASTE SENT: ${text.substring(0, 60).replace(/</g, '&lt;').replace(/>/g, '&gt;')}${text.length > 60 ? '...' : ''} ]</span>\n\n`);
+  }, []);
+
   return {
     isActive,
     isMuted,
@@ -718,6 +732,7 @@ You are GEA. You are an intelligence that lives in the hardware of this device. 
     thoughts,
     connect,
     stopAll,
-    toggleMute
+    toggleMute,
+    sendTextMessage
   };
 }

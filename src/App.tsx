@@ -19,7 +19,7 @@ function App() {
   const [images, setImages] = useState<any[]>([]);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
-  const { isActive, isMuted, UIState, statusText, thoughts, connect, stopAll, toggleMute } = useGeminiLive(apiKey, 'Leda');
+  const { isActive, isMuted, UIState, statusText, thoughts, connect, stopAll, toggleMute, sendTextMessage } = useGeminiLive(apiKey, 'Leda');
   const { syncDrive, trySilentSync, isSyncing, userInfo, logoutDrive } = useGoogleDrive();
   const { isGenerating, visionThoughts, jobs, generateImage } = useVisionAgent(apiKey);
 
@@ -150,7 +150,7 @@ function App() {
       {/* Pages */}
       <div className="pages">
         <div className={`page page-no-scroll ${activePage === 'home' ? 'active' : ''}`}>
-          <HomePanel isActive={isActive} thoughts={thoughts} statusText={statusText} UIState={UIState} visionThoughts={visionThoughts} isGenerating={isGenerating} jobs={jobs} connect={connect} stopAll={stopAll} />
+          <HomePanel isActive={isActive} thoughts={thoughts} statusText={statusText} UIState={UIState} visionThoughts={visionThoughts} isGenerating={isGenerating} jobs={jobs} connect={connect} stopAll={stopAll} sendTextMessage={sendTextMessage} />
         </div>
         <div className={`page ${activePage === 'gallery' ? 'active' : ''}`}>
           <GalleryPanel images={images} loadData={loadData} />

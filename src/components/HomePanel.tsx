@@ -17,6 +17,7 @@ interface Props {
   jobs: VisionJob[];
   connect: (e?: any) => void;
   stopAll: () => void;
+  sendTextMessage?: (text: string) => void;
 }
 
 const ASCII_LOGO = ` ██████╗ ███████╗ █████╗ 
@@ -41,7 +42,7 @@ function TerminalChrome({ title, color, isLive }: { title: string; color: string
   );
 }
 
-export default function HomePanel({ isActive, thoughts, statusText, UIState, visionThoughts, isGenerating, jobs, connect, stopAll }: Props) {
+export default function HomePanel({ isActive, thoughts, statusText, UIState, visionThoughts, isGenerating, jobs, connect, stopAll, sendTextMessage }: Props) {
   const transcriptRef = useRef<HTMLDivElement>(null);
   const visionRef = useRef<HTMLDivElement>(null);
 
@@ -107,14 +108,35 @@ export default function HomePanel({ isActive, thoughts, statusText, UIState, vis
         </div>
       </div>
 
-      {/* ═══ CONNECT BUTTON ═══ */}
-      <button
-        className={`connect-btn ${isActive ? 'active' : ''}`}
-        onClick={isActive ? stopAll : connect}
-        id="btn-connect"
-      >
-        {isActive ? '● LIVE SESSION ACTIVE' : '▶ START SESSION'}
-      </button>
+      {/* ═══ CONNECT BUTTON & PASTE BUTTON ═══ */}
+      <div style={{ display: 'flex', gap: '8px', width: '100%', margin: '0 10px', paddingBottom: '10px' }}>
+        <button
+          className={`connect-btn ${isActive ? 'active' : ''}`}
+          onClick={isActive ? stopAll : connect}
+          id="btn-connect"
+          style={{ flex: 1, margin: 0 }}
+        >
+          {isActive ? '● LIVE SESSION ACTIVE' : '▶ START SESSION'}
+        </button>
+        {isActive && sendTextMessage && (
+          <button 
+            className="connect-btn"
+            style={{ width: '60px', padding: '0', margin: 0, background: 'var(--surface-light)', border: '1px solid var(--border)' }}
+            onClick={async () => {
+              try {
+                const text = await navigator.clipboard.readText();
+                if (text) sendTextMessage(text);
+                window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '📋 Tekst zalijepljen i poslan Gei!' }));
+              } catch(e) {
+                window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '❌ Clipboard access denied' }));
+              }
+            }}
+            title="Paste and send clipboard text to Gea"
+          >
+            📋
+          </button>
+        )}
+      </div>
     </div>
   );
 }

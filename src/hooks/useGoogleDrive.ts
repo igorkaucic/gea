@@ -202,8 +202,8 @@ export function useGoogleDrive() {
     return data.files || [];
   };
 
-  const uploadMarkdownFile = async (token: string, fileName: string, content: string, folderId: string, existingFileId?: string) => {
-    const metadata: any = { name: fileName, mimeType: 'text/markdown' };
+  const uploadGoogleDoc = async (token: string, title: string, htmlContent: string, folderId: string, existingFileId?: string) => {
+    const metadata: any = { name: title, mimeType: 'application/vnd.google-apps.document' };
     if (!existingFileId) metadata.parents = [folderId];
 
     const boundary = '---gea_boundary_' + Date.now();
@@ -213,9 +213,9 @@ export function useGoogleDrive() {
       '',
       JSON.stringify(metadata),
       `--${boundary}`,
-      'Content-Type: text/markdown; charset=UTF-8',
+      'Content-Type: text/html; charset=UTF-8',
       '',
-      content,
+      htmlContent,
       `--${boundary}--`
     ].join('\r\n');
 
@@ -233,6 +233,19 @@ export function useGoogleDrive() {
     });
     if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
     return resp.json();
+  };
+
+  const noteToHtml = (note: any): string => {
+    const body = (note.body || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const paragraphs = body.split('\n').map((line: string) => 
+      line.trim() ? `<p>${line}</p>` : '<br/>'
+    ).join('\n');
+    return `<html><body>
+<h1>${(note.title || 'Untitled').replace(/</g, '&lt;')}</h1>
+${paragraphs}
+<hr/>
+<p style="color:#888;font-size:10px;">Created: ${note.timestamp || 'Unknown'} · Folder: ${note.folder_name || 'N/A'} · ID: ${note.id}</p>
+</body></html>`;
   };
 
   const uploadImageFile = async (token: string, fileName: string, b64Data: string, folderId: string, existingFileId?: string) => {
@@ -296,39 +309,38 @@ export function useGoogleDrive() {
         if (folder.name === 'Images') continue;
         const files = await listFilesInFolder(token, folder.id);
         for (const file of files) {
-          if (!file.name.endsWith('.md')) continue;
           try {
-            const rawRes = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
+            // Export Google Doc as plain text
+            const rawRes = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}/export?mimeType=text/plain`, {
               headers: { 'Authorization': 'Bearer ' + token }
             });
+            if (!rawRes.ok) continue;
             const text = await rawRes.text();
             
-            let title = 'Untitled';
+            let title = file.name; // Google Doc title = file name
             let timestamp = new Date().toISOString();
             let folderName = folder.name;
             
-            const lines = text.split('\n');
-            let bodyLines = [];
-            let parsingMeta = false;
+            // Parse: first line is title (from H1), last line has metadata
+            const lines = text.split('\n').filter((l: string) => l.trim());
+            if (lines.length > 0 && lines[0].trim()) title = lines[0].trim();
             
-            for (let i = 0; i < lines.length; i++) {
-              const line = lines[i];
-              if (i === 0 && line.startsWith('# ')) { title = line.substring(2).trim(); continue; }
-              if (line.trim() === '---' && i >= lines.length - 5) { parsingMeta = true; continue; }
-              if (parsingMeta) {
-                if (line.startsWith('*Created: ')) timestamp = line.replace('*Created: ', '').replace(/\*/g, '').trim();
-                if (line.startsWith('*Folder: ')) folderName = line.replace('*Folder: ', '').replace(/\*/g, '').trim();
-                continue;
-              }
-              bodyLines.push(line);
-            }
+            // Check last line for metadata
+            const lastLine = lines[lines.length - 1] || '';
+            const createdMatch = lastLine.match(/Created:\s*([\d\-T:.Z]+)/);
+            const folderMatch = lastLine.match(/Folder:\s*(\S+)/);
+            if (createdMatch) timestamp = createdMatch[1];
+            if (folderMatch) folderName = folderMatch[1];
+            
+            // Body is everything between title and metadata
+            const bodyLines = lines.slice(1, lines.length - (createdMatch ? 1 : 0));
             await dbAdd('notes', { title, body: bodyLines.join('\n').trim(), timestamp, folder_name: folderName });
           } catch (e) { console.error("Restore note failed", e); }
         }
       }
       
       window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
-      return; // Do not execute destructive mirror after restoring
+      return;
     }
 
     if (allNotes.length === 0) return;
@@ -362,16 +374,15 @@ export function useGoogleDrive() {
         existingFileMap[f.name] = f.id;
       }
 
-      // Upload/update each note as .md
+      // Upload/update each note as Google Doc
       const syncedFileNames = new Set<string>();
       for (const note of notes) {
-        const fileName = `${(note.title || 'Untitled').replace(/[/\\?%*:|"<>]/g, '_')}.md`;
-        syncedFileNames.add(fileName);
+        const docTitle = (note.title || 'Untitled').replace(/[/\\?%*:"|<>]/g, '_');
+        syncedFileNames.add(docTitle);
 
-        const content = `# ${note.title || 'Untitled'}\n\n${note.body || ''}\n\n---\n*Created: ${note.timestamp || 'Unknown'}*\n*Folder: ${note.folder_name || 'N/A'}*\n*ID: ${note.id}*\n`;
-
-        const existingId = existingFileMap[fileName];
-        await uploadMarkdownFile(token, fileName, content, folderId, existingId);
+        const htmlContent = noteToHtml(note);
+        const existingId = existingFileMap[docTitle];
+        await uploadGoogleDoc(token, docTitle, htmlContent, folderId, existingId);
       }
 
       // Delete files that no longer exist locally (destructive mirror)

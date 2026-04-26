@@ -40,24 +40,17 @@ export function useGoogleDrive() {
   const initTokenClient = () => {
     if (tokenClientRef.current) return true;
     if (typeof (window as any).google === 'undefined' || !(window as any).google.accounts) {
-      alert('Google SDK not loaded. Check your internet or adblocker.');
+      console.warn('[DRIVE] Google SDK not loaded');
       return false;
     }
-
-    const config: any = {
+    tokenClientRef.current = (window as any).google.accounts.oauth2.initTokenClient({
       client_id: GDRIVE_CLIENT_ID,
       scope: GDRIVE_SCOPES,
-      callback: () => {}
-    };
-
-    // In standalone PWA mode, use redirect instead of popup (popups are blocked by iOS)
-    if (IS_STANDALONE) {
-      config.ux_mode = 'redirect';
-      config.redirect_uri = window.location.origin + window.location.pathname;
-      console.log('[DRIVE] Standalone mode detected — using redirect flow');
-    }
-
-    tokenClientRef.current = (window as any).google.accounts.oauth2.initTokenClient(config);
+      callback: () => {},
+      error_callback: (err: any) => {
+        console.error('[DRIVE] Token client error:', err.type);
+      }
+    });
     return true;
   };
 
@@ -77,42 +70,65 @@ export function useGoogleDrive() {
     }
   };
 
+  // Manual OAuth 2.0 implicit flow redirect for PWA standalone mode
+  // (initTokenClient only supports popup — per official Google docs, no ux_mode for token client)
+  const redirectToGoogleAuth = () => {
+    const redirectUri = window.location.origin + window.location.pathname;
+    const params = new URLSearchParams({
+      client_id: GDRIVE_CLIENT_ID,
+      redirect_uri: redirectUri,
+      response_type: 'token',
+      scope: GDRIVE_SCOPES,
+      include_granted_scopes: 'true'
+    });
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    console.log('[DRIVE] Redirecting to Google OAuth...');
+    window.location.href = authUrl;
+  };
+
   const getToken = async (interactive: boolean = false): Promise<string> => {
-    // In standalone mode with redirect flow, we can't get a token via callback.
-    // If we have a cached token, use it. Otherwise, initiate redirect.
+    // If we have a cached token, always try it first
+    if (cachedTokenRef.current) return cachedTokenRef.current;
+
+    // In standalone mode, use manual redirect (no popup support on iOS PWA)
     if (IS_STANDALONE && interactive) {
-      const cached = cachedTokenRef.current;
-      if (cached) return cached;
-      // Initiate redirect — this will navigate away from the app
-      if (!initTokenClient()) throw new Error('No SDK');
-      console.log('[DRIVE] Redirecting to Google for auth...');
-      tokenClientRef.current.requestAccessToken();
-      // This line won't execute — browser navigates away
-      throw new Error('Redirecting...');
+      redirectToGoogleAuth();
+      throw new Error('Redirecting to Google...');
     }
 
+    // In browser mode, use popup via GIS token client
     return new Promise((resolve, reject) => {
-      if (!initTokenClient()) return reject(new Error('No SDK'));
+      if (!initTokenClient()) {
+        if (interactive) { redirectToGoogleAuth(); return; }
+        return reject(new Error('No SDK'));
+      }
 
       const tc = tokenClientRef.current;
-      
+
       let timeoutId: any = null;
       if (!interactive) {
         timeoutId = setTimeout(() => {
-          reject(new Error('Popup blocked or timed out by browser.'));
+          reject(new Error('Silent token refresh timed out.'));
         }, 3000);
       }
 
       tc.callback = async (resp: any) => {
         if (timeoutId) clearTimeout(timeoutId);
-        if (resp.error) {
-          reject(new Error(resp.error));
-          return;
-        }
+        if (resp.error) { reject(new Error(resp.error)); return; }
         cachedTokenRef.current = resp.access_token;
         localStorage.setItem('gdrive_token', resp.access_token);
         await fetchUserInfo(resp.access_token);
         resolve(resp.access_token);
+      };
+
+      tc.error_callback = (err: any) => {
+        if (timeoutId) clearTimeout(timeoutId);
+        console.error('[DRIVE] Popup error:', err.type);
+        if (interactive && err.type === 'popup_failed_to_open') {
+          redirectToGoogleAuth();
+        } else {
+          reject(new Error('Auth failed: ' + err.type));
+        }
       };
 
       if (interactive) {

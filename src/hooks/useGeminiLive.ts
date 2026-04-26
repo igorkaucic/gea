@@ -291,8 +291,8 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
             }
           },
           contextWindowCompression: {
-            triggerTokens: '104857',
-            slidingWindow: { targetTokens: '52428' }
+            triggerTokens: '40960',
+            slidingWindow: { targetTokens: '20480' }
           },
           tools: toolsPayload,
           systemInstruction: {

@@ -99,6 +99,8 @@ export default function GalleryPanel({ images, loadData }: Props) {
     }
   }, [selectedIds, loadData]);
 
+  const lastTapTime = useRef<number>(0);
+
   // ─── Lightbox touch handlers ───
   const onTouchStart = (e: React.TouchEvent) => {
     const s = stateRef.current;
@@ -108,6 +110,17 @@ export default function GalleryPanel({ images, loadData }: Props) {
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       s.lastDist = Math.sqrt(dx * dx + dy * dy);
     } else if (e.touches.length === 1) {
+      const now = Date.now();
+      if (now - lastTapTime.current < 300) {
+        // Double tap
+        s.scale = s.scale > 1 ? 1 : 2.5;
+        s.x = 0; s.y = 0;
+        applyTransform();
+        lastTapTime.current = 0;
+        return;
+      }
+      lastTapTime.current = now;
+
       s.dragging = true;
       if (s.scale > 1) {
         s.startX = e.touches[0].clientX - s.x;
@@ -257,7 +270,7 @@ export default function GalleryPanel({ images, loadData }: Props) {
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
           </button>
-          <div className="lightbox-hint">DRAG ↕ TO CLOSE · PINCH TO ZOOM</div>
+          <div className="lightbox-hint">DRAG ↕ TO CLOSE · PINCH / DOUBLE-TAP TO ZOOM</div>
         </div>
       )}
     </>

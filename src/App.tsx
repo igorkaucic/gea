@@ -65,7 +65,7 @@ function App() {
 
     window.addEventListener('SHOW_TOAST', handleToast);
     window.addEventListener('DATA_CHANGED', handleDataChanged);
-    const handleGenerateImage = (e: any) => { generateImage(e.detail); };
+    const handleGenerateImage = (e: any) => { generateImage(e.detail.prompt, e.detail.filename); };
     window.addEventListener('GENERATE_IMAGE', handleGenerateImage);
 
     const handleBeforeInstallPrompt = (e: any) => {

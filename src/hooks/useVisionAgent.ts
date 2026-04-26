@@ -25,7 +25,7 @@ export function useVisionAgent(apiKey: string) {
     setJobs([...jobsRef.current]);
   };
 
-  const generateImage = useCallback(async (prompt: string) => {
+  const generateImage = useCallback(async (prompt: string, providedFilename?: string) => {
     if (!apiKey) return null;
 
     const jobId = ++jobCounter;
@@ -45,7 +45,6 @@ export function useVisionAgent(apiKey: string) {
         model: 'gemini-3.1-flash-image-preview',
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
-          systemInstruction: 'Before generating the image, output a short descriptive filename (lowercase, underscores, no extension) inside <filename></filename> tags.',
           imageConfig: {
             // @ts-ignore
             aspectRatio: "1:1",
@@ -93,11 +92,8 @@ export function useVisionAgent(apiKey: string) {
       console.info(`[VISION_LOG] Stream finished. Total text length: ${fullText.length}`);
 
       if (imageData) {
-        let generatedFilename = 'gea_image';
-        const match = fullText.match(/<filename>(.*?)<\/filename>/);
-        if (match && match[1]) {
-          generatedFilename = match[1].trim().replace(/[^a-z0-9_]/g, '');
-        }
+        const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+        const generatedFilename = providedFilename ? `${providedFilename}_${dateStr}` : `gea_image_${dateStr}`;
 
         const b64Url = `data:${imageMime};base64,${imageData}`;
         const newId = await dbAdd('images', {

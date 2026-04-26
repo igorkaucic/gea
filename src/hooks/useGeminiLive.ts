@@ -247,9 +247,10 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
               parameters: {
                 type: "OBJECT",
                 properties: {
-                  prompt: { type: "STRING", description: "The image generation prompt." }
+                  prompt: { type: "STRING", description: "The image generation prompt." },
+                  filename: { type: "STRING", description: "A short, descriptive base filename (lowercase, underscores, no extension) derived from the prompt." }
                 },
-                required: ["prompt"]
+                required: ["prompt", "filename"]
               }
             },
             {
@@ -612,9 +613,10 @@ You are GEA. You are having a spoken conversation with the user. You have your o
           else if (call.name === "generateImage") {
             try {
               const prompt = call.args?.prompt || '';
+              const filename = call.args?.filename || 'gea_image';
               console.log('🎨 [VISION] Dispatching image generation:', prompt.substring(0, 80) + '...');
-              window.dispatchEvent(new CustomEvent('GENERATE_IMAGE', { detail: prompt }));
-              setThoughts(prev => prev + `<br><span style="color:#FFB300">🎨 Vision Agent dispatched — generating in background...</span><br>`);
+              window.dispatchEvent(new CustomEvent('GENERATE_IMAGE', { detail: { prompt, filename } }));
+              setThoughts(prev => prev + `<br><span style="color:#FFB300">🎨 Vision Agent dispatched [${filename}] — generating in background...</span><br>`);
               result = { result: "Image generation started! The Vision Agent is processing this in the background. You can continue talking while it generates." };
             } catch (err) {
               result = { result: "Error dispatching image generation: " + err };

@@ -712,16 +712,27 @@ You are GEA. You are an intelligence that lives in the hardware of this device. 
 
   const sendTextMessage = useCallback((text: string) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({
-      clientContent: {
-        turns: [{
-          role: 'user',
-          parts: [{ text }]
-        }],
-        turnComplete: true
-      }
-    }));
-    setThoughts(prev => prev + `\n\n<span style="color: var(--success); font-style: italic;">[ 📋 PASTE SENT: ${text.substring(0, 60).replace(/</g, '&lt;').replace(/>/g, '&gt;')}${text.length > 60 ? '...' : ''} ]</span>\n\n`);
+
+    // Chunk text to prevent 1007 WebSocket payload too large error
+    const CHUNK_SIZE = 10000;
+    const chunks = [];
+    for (let i = 0; i < text.length; i += CHUNK_SIZE) {
+      chunks.push(text.substring(i, i + CHUNK_SIZE));
+    }
+
+    chunks.forEach((chunk, index) => {
+      wsRef.current?.send(JSON.stringify({
+        clientContent: {
+          turns: [{
+            role: 'user',
+            parts: [{ text: chunk }]
+          }],
+          turnComplete: index === chunks.length - 1
+        }
+      }));
+    });
+
+    setThoughts(prev => prev + `\n\n<span style="color: var(--success); font-style: italic;">[ 📋 PASTE SENT: ${text.substring(0, 60).replace(/</g, '&lt;').replace(/>/g, '&gt;')}${text.length > 60 ? '... (' + chunks.length + ' parts)' : ''} ]</span>\n\n`);
   }, []);
 
   return {

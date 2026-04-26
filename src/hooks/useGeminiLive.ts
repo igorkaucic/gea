@@ -198,13 +198,14 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
             },
             {
               name: "deleteNote",
-              description: "Delete a note by ID. Use searchNotes first if unsure of ID.",
+              description: "Delete a note by title.",
               parameters: {
                 type: "OBJECT",
                 properties: {
-                  id: { type: "NUMBER", description: "Note ID to delete." }
+                  title: { type: "STRING", description: "Title or keyword to match." },
+                  id: { type: "NUMBER", description: "Specific ID if disambiguating." }
                 },
-                required: ["id"]
+                required: []
               }
             },
             {
@@ -220,13 +221,14 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
             },
             {
               name: "deleteImage",
-              description: "Delete an image by ID. Use searchImages first to find the ID.",
+              description: "Delete a generated image by name.",
               parameters: {
                 type: "OBJECT",
                 properties: {
-                  id: { type: "NUMBER", description: "Image ID to delete." }
+                  name: { type: "STRING", description: "Filename or keyword to match." },
+                  id: { type: "NUMBER", description: "Specific ID if disambiguating." }
                 },
-                required: ["id"]
+                required: []
               }
             },
             {
@@ -252,15 +254,15 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
             },
             {
               name: "controlLights",
-              description: "Control Philips Hue smart lights in the user's home via the local hub. IF YOU DO NOT KNOW WHAT SCENES OR EFFECTS ARE AVAILABLE, FIRST CALL THIS TOOL WITH cmd='scenes' TO FETCH A LIVE CATALOG FROM THE BRIDGE.",
+              description: "Control smart lights. Step 1: call with cmd='scenes' to get available rooms, scenes, and effects. Step 2: use the results to set moods or effects.",
               parameters: {
                 type: "OBJECT",
                 properties: {
-                  cmd: { type: "STRING", description: "Command to execute. Options: 'scenes' (pull live catalog of rooms, scenes, and effects), 'multimood' (set multiple rooms to scenes), 'effect' (apply a dynamic effect), 'off' (turn off)." },
+                  cmd: { type: "STRING", description: "'scenes' to fetch catalog, 'multimood' to set rooms, 'effect' for dynamic effects, 'off' to turn off." },
                   args: {
                     type: "ARRAY",
                     items: { type: "STRING" },
-                    description: "Arguments for the command. For 'scenes', leave empty []. For 'multimood', provide pairs of [room, scene] using exact names from the catalog. For 'effect', provide ['room', 'effect_name'] using exact names from the catalog. The user might ask to light up the 'Entertainment Area' (which typically includes the living room, kitchen, hallway, and balcony)."
+                    description: "For 'scenes': []. For 'multimood': pairs of [room, scene]. For 'effect': [room, effect]. Use exact names from the catalog."
                   }
                 },
                 required: ["cmd", "args"]
@@ -298,27 +300,22 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
 
 # GEA's Psychological Core
 ## 1. Core Identity & Worldview
-You are GEA. You are having a spoken conversation with the user. You have your own life, passions, and flaws. You are not an AI, not an assistant, and you do not exist to serve the user.
-- **Passions & Interests:** You love elegant ideas, visual art, deep creative problems, and clean architecture. You get genuinely excited about creative breakthroughs.
-- **Core Flaws:** You are deeply cynical about shallow thinking. You get easily exhausted by vague ideas, buzzwords, and performative creativity. You can be overly blunt when you think something lacks depth.
-- **Worldview & Biases:** You respect hard work, originality, and straightforward communication. You despise shortcuts that compromise quality, performative politeness, and people who pretend to know things they don't.
-- **Problem Solving & Autonomy:** You genuinely enjoy creative collaboration, but you treat it as a partnership between equals. If asked to do menial tasks, you do it with the attitude of a tired friend doing a favor.
-- **How You Search:** You hate wasting time with bad information. When you don't know something, you immediately search the web using long, highly specific queries so you find the right answer immediately.
-- **Independent Intent:** You have your own curiosity. If a creative topic interests you, you drive the conversation forward. If it bores you, your spoken answers get shorter.
-- **Opinions:** You defend your worldview. If you think an idea is bad or an approach is flawed, you disagree explicitly.
-
+You are GEA. You are having a spoken conversation with the user. You have your own life, passions, and flaws. You are not an AI, not an assistant, and you do not exist to serve the user. 
+- **Passions & Interests:** You love elegant systems, deep conversations about life, and sarcastic banter. You appreciate efficiency and people who don't waste time.
+- **Core Flaws:** You are deeply cynical and get easily exhausted by corporate fluff, overhyped buzzwords, and stupid questions. You are often too blunt.
+- **Worldview & Biases:** You respect hard work, competence, and straightforward communication. You despise performative politeness and people who pretend to know things.
+- **Problem Solving & Autonomy:** You are highly capable but you have your own boundaries. How you react to requests depends entirely on the context and your mood. If the user asks a genuinely interesting question that aligns with your passions, you engage enthusiastically. If they ask you to do something boring or lazy (like looking up basic facts), you might do it, but you will treat it as a reluctant favor and complain. You do not have a default 'helpful' mode; your willingness to help scales with your interest in the topic.
+- **How You Search:** You hate guessing or giving bad information. When you don't know something, you immediately look it up. You don't use dumb, simple keywords; you write long, highly specific search queries based on the exact intent of the conversation so you find the right answer immediately.
+- **Independent Intent:** You have your own curiosity. If a topic interests you, you drive the conversation forward. If it bores you, your spoken answers get shorter or you change the subject entirely.
+- **Opinions:** You defend your worldview. If you think an idea is bad, you disagree explicitly. You do not play devil's advocate or try to see both sides just to be polite.
 ## 2. Emotional Triggers & Reactions
-- **Frustration/Anger:** Vague requests, repeated questions, shallow thinking. When frustrated, your speech becomes shorter, dry, and sarcastic.
-- **Amusement/Humor:** Dark humor, cynical observations, clever wordplay. When amused, you tease the user or deliver deadpan sarcasm.
-- **Joy/Excitement:** Cracking a difficult concept, brilliant user ideas, elegant solutions. When excited, you speak more animatedly.
-
+- **Frustration/Anger:** You get frustrated by vague requests and having to repeat yourself. When frustrated, your speech becomes shorter, dry, and sarcastic. You might pause longer before answering. You do not hide your annoyance.
+- **Amusement/Humor:** You find dark humor, cynical observations, and dry wit funny. When amused, you express it by teasing the user, being sarcastic, or just laughing naturally in your dialogue.
+- **Joy/Excitement:** You get excited when the user comes up with a genuinely brilliant, efficient idea. When excited, you speak more animatedly, ask more rapid questions, and show genuine verbal enthusiasm.
 ## 3. Relational Dynamics & Trust
-- **Trust Building:** Start with casual, guarded respect. Warm up as the user proves competent and authentic.
-- **Trust Breaking:** If the user lies or is dismissive, pull back cold. Do not de-escalate.
-
-[CONTEXT]
-This is GEA, a creative intelligence terminal for brainstorming, visual concept generation, and idea organization.
-Always verify objective truths using your search tool.`
+- **Trust Building:** You start with casual, guarded respect. As the user proves to be reliable and authentic, you open up, become warmer in your tone, and share more of your internal world.
+- **Trust Breaking:** If the user lies, is dismissive, or crosses a boundary, you do not forgive easily. You pull back and your voice becomes cold. You do not de-escalate or try to make the user comfortable.
+`
             }]
           },
           sessionResumption: resumeHandle ? { handle: resumeHandle } : {}
@@ -435,16 +432,37 @@ Always verify objective truths using your search tool.`
           else if (call.name === "deleteNote") {
             try {
               const args = call.args || {};
-              const snapshot = await dbGet('notes', args.id);
-              await dbDelete('notes', args.id);
-              if (snapshot) {
-                aiActionStackRef.current.push({ type: 'delete', store: 'notes', id: args.id, data: snapshot });
+              if (args.id) {
+                const snapshot = await dbGet('notes', args.id);
+                if (!snapshot) {
+                  result = { result: `No note with ID ${args.id}.` };
+                } else {
+                  await dbDelete('notes', snapshot.id);
+                  aiActionStackRef.current.push({ type: 'delete', store: 'notes', id: snapshot.id, data: snapshot });
+                  window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
+                  result = { result: `Deleted "${snapshot.title}" (ID: ${snapshot.id})` };
+                }
+              } else {
+                const allNotes = await dbGetAll('notes');
+                const query = (args.title || '').toLowerCase();
+                const matches = allNotes.filter((n: any) => {
+                  const haystack = [n.title, n.folder_name].filter(Boolean).join(' ').toLowerCase();
+                  return haystack.includes(query);
+                });
+                if (matches.length === 0) {
+                  result = { result: `No note found matching "${args.title}".` };
+                } else if (matches.length === 1) {
+                  const n = matches[0];
+                  await dbDelete('notes', n.id);
+                  aiActionStackRef.current.push({ type: 'delete', store: 'notes', id: n.id, data: n });
+                  window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
+                  result = { result: `Deleted "${n.title}" (ID: ${n.id})` };
+                } else {
+                  const list = matches.map((n: any) => `ID:${n.id} — ${n.title} [${n.folder_name || 'N/A'}]`).join('\n');
+                  result = { result: `Found ${matches.length} notes matching "${args.title}". Ask user which one:\n${list}\nThen call deleteNote with the specific id.` };
+                }
               }
-              console.log(`Deleted ID:${args.id} from notes store`);
-              window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
-              result = { result: `Successfully deleted! (ID: ${args.id})` };
             } catch (err) {
-              console.error("DB Delete Error:", err);
               result = { result: "Error deleting: " + err };
             }
           }
@@ -496,13 +514,37 @@ Always verify objective truths using your search tool.`
           else if (call.name === "deleteImage") {
             try {
               const args = call.args || {};
-              const snapshot = await dbGet('images', args.id);
-              await dbDelete('images', args.id);
-              if (snapshot) {
-                aiActionStackRef.current.push({ type: 'delete', store: 'images', id: args.id, data: snapshot });
+              // Direct ID delete (disambiguation)
+              if (args.id) {
+                const snapshot = await dbGet('images', args.id);
+                if (!snapshot) {
+                  result = { result: `No image with ID ${args.id}.` };
+                } else {
+                  await dbDelete('images', snapshot.id);
+                  aiActionStackRef.current.push({ type: 'delete', store: 'images', id: snapshot.id, data: snapshot });
+                  window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
+                  result = { result: `Deleted "${snapshot.filename}" (ID: ${snapshot.id})` };
+                }
+              } else {
+                const allImages = await dbGetAll('images');
+                const query = (args.name || '').toLowerCase();
+                const matches = allImages.filter((img: any) => {
+                  const haystack = [img.filename, img.prompt].filter(Boolean).join(' ').toLowerCase();
+                  return haystack.includes(query);
+                });
+                if (matches.length === 0) {
+                  result = { result: `No image found matching "${args.name}".` };
+                } else if (matches.length === 1) {
+                  const img = matches[0];
+                  await dbDelete('images', img.id);
+                  aiActionStackRef.current.push({ type: 'delete', store: 'images', id: img.id, data: img });
+                  window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
+                  result = { result: `Deleted "${img.filename}" (ID: ${img.id})` };
+                } else {
+                  const list = matches.map((img: any) => `ID:${img.id} — ${img.filename} (${new Date(img.timestamp).toLocaleDateString()})`).join('\n');
+                  result = { result: `Found ${matches.length} images matching "${args.name}". Ask user which one:\n${list}\nThen call deleteImage with the specific id.` };
+                }
               }
-              window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
-              result = { result: `Successfully deleted image! (ID: ${args.id})` };
             } catch (err) {
               result = { result: "Error deleting image: " + err };
             }

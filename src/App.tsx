@@ -18,6 +18,7 @@ function App() {
   const [notes, setNotes] = useState<any[]>([]);
   const [images, setImages] = useState<any[]>([]);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [calendarPrompt, setCalendarPrompt] = useState<any>(null);
 
   const { isActive, isMuted, UIState, statusText, thoughts, connect, stopAll, toggleMute, sendTextMessage } = useGeminiLive(apiKey, 'Leda');
   const { syncDrive, trySilentSync, isSyncing, userInfo, logoutDrive } = useGoogleDrive();
@@ -65,8 +66,14 @@ function App() {
 
     window.addEventListener('SHOW_TOAST', handleToast);
     window.addEventListener('DATA_CHANGED', handleDataChanged);
+    
     const handleGenerateImage = (e: any) => { generateImage(e.detail.prompt, e.detail.filename); };
     window.addEventListener('GENERATE_IMAGE', handleGenerateImage);
+
+    const handleCalPrompt = (e: any) => {
+      setCalendarPrompt(e.detail);
+    };
+    window.addEventListener('SHOW_CALENDAR_PROMPT', handleCalPrompt);
 
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
@@ -83,6 +90,7 @@ function App() {
       window.removeEventListener('GENERATE_IMAGE', handleGenerateImage); 
       window.removeEventListener('OPEN_LIGHTBOX', handleOpenLightbox);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('SHOW_CALENDAR_PROMPT', handleCalPrompt);
       if (syncDebounce) clearTimeout(syncDebounce);
     };
   }, [isActive, isGenerating]);
@@ -144,6 +152,34 @@ function App() {
             <button onClick={installApp} style={{ background: '#000', color: 'var(--cyan)', border: 'none', padding: '6px 12px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', marginRight: '8px' }}>Install</button>
             <button onClick={() => setDeferredPrompt(null)} style={{ background: 'transparent', color: '#000', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
           </div>
+        </div>
+      )}
+
+      {calendarPrompt && (
+        <div style={{
+          position: 'fixed', bottom: '80px', left: '20px', right: '20px',
+          background: '#FF00FF', color: '#000', padding: '16px', borderRadius: '12px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          boxShadow: '0 10px 40px rgba(255,0,255,0.5)', zIndex: 9999,
+          animation: 'fadeUp 0.3s ease-out forwards'
+        }}>
+          <span style={{fontWeight: 'bold', fontSize: '14px', flex: 1, marginRight: '10px'}}>📅 {calendarPrompt.title}</span>
+          <button onClick={() => {
+             const blob = new Blob([calendarPrompt.icsContent], { type: 'text/calendar;charset=utf-8' });
+             const url = URL.createObjectURL(blob);
+             const a = document.createElement('a');
+             a.href = url;
+             a.download = 'podsjetnik.ics';
+             document.body.appendChild(a);
+             a.click();
+             document.body.removeChild(a);
+             setTimeout(() => URL.revokeObjectURL(url), 1000);
+             setCalendarPrompt(null);
+          }} style={{
+            background: '#000', color: '#FF00FF', border: '1px solid #FF00FF', borderRadius: '8px', 
+            padding: '10px 18px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer'
+          }}>ADD TO CALENDAR</button>
+          <button onClick={() => setCalendarPrompt(null)} style={{background: 'transparent', border: 'none', color: '#000', marginLeft: '10px', fontSize: '16px'}}>✕</button>
         </div>
       )}
 

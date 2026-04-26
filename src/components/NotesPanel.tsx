@@ -117,8 +117,8 @@ export default function NotesPanel({ notes, loadData, trySilentSync, isActive }:
                 <div className="folder-children">
                   <div className="folder-wire" />
                   {folderNotes.map((note: any) => (
-                    <div key={note.id} className="note-card">
-                      <div className="note-wire-dot" />
+                    <div key={note.id} className="note-card" style={note.is_reminder ? { border: '1px solid rgba(255, 0, 255, 0.3)', background: 'rgba(255, 0, 255, 0.02)' } : {}}>
+                      <div className="note-wire-dot" style={note.is_reminder ? { borderColor: '#FF00FF', background: '#FF00FF', boxShadow: '0 0 8px #FF00FF' } : {}} />
                       <div className="note-wire-line" />
 
                       {editingId === note.id ? (
@@ -149,8 +149,16 @@ export default function NotesPanel({ notes, loadData, trySilentSync, isActive }:
                       ) : (
                         /* VIEW MODE */
                         <>
-                          <div className="note-title">{note.title || 'Untitled'}</div>
-                          {note.body && <div className="note-body">{note.body}</div>}
+                          <div className="note-title" style={note.is_reminder ? { color: '#FF00FF', display: 'flex', alignItems: 'center', gap: '6px' } : {}}>
+                            {note.is_reminder && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>}
+                            {note.title || 'Untitled'}
+                          </div>
+                          {note.body && <div className="note-body" style={note.is_reminder ? { borderLeft: '2px solid #FF00FF', paddingLeft: '8px' } : {}}>{note.body}</div>}
+                          {note.is_reminder && note.start_time_iso && (
+                            <div style={{ fontSize: '11px', color: '#FF00FF', marginTop: '6px', fontWeight: 'bold' }}>
+                              ⏰ {new Date(note.start_time_iso).toLocaleString()}
+                            </div>
+                          )}
                           <div className="note-meta">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <span className="note-timestamp">

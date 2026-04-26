@@ -177,7 +177,10 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
                 properties: {
                   folder_name: { type: "STRING", description: "Short folder/topic name." },
                   title: { type: "STRING", description: "Short title." },
-                  body: { type: "STRING", description: "Full text content." }
+                  body: { type: "STRING", description: "Full text content." },
+                  is_reminder: { type: "BOOLEAN", description: "MUST be true if the user asks you to remind them of something or schedules a future task. Otherwise false or omitted." },
+                  start_time_iso: { type: "STRING", description: "Start time in ISO format (e.g. 2026-04-27T08:00:00). MUST be provided if is_reminder is true." },
+                  end_time_iso: { type: "STRING", description: "End time in ISO format (e.g. 2026-04-27T09:00:00). MUST be provided if is_reminder is true." }
                 },
                 required: ["folder_name", "title", "body"]
               }
@@ -382,7 +385,38 @@ You are GEA. You are an intelligence that lives in the hardware of this device. 
               aiActionStackRef.current.push({ type: 'save', store: 'notes', id: newId });
               console.log("Successfully saved to notes store.");
               window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
-              result = { result: "Successfully saved to local database!" };
+              
+              if (call.args.is_reminder && call.args.start_time_iso && call.args.end_time_iso) {
+                const start = new Date(call.args.start_time_iso);
+                const end = new Date(call.args.end_time_iso);
+                const pad = (n: number) => n.toString().padStart(2, '0');
+                const formatDate = (d: Date) => 
+                  `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+                  
+                const icsContent = [
+                  'BEGIN:VCALENDAR',
+                  'VERSION:2.0',
+                  'BEGIN:VEVENT',
+                  `DTSTART:${formatDate(start)}`,
+                  `DTEND:${formatDate(end)}`,
+                  `SUMMARY:${call.args.title}`,
+                  `DESCRIPTION:${call.args.body}\\n\\nOtvori aplikaciju: https://192.168.178.20:5055/`,
+                  'BEGIN:VALARM',
+                  'TRIGGER:-PT15M',
+                  'ACTION:DISPLAY',
+                  'DESCRIPTION:Reminder',
+                  'END:VALARM',
+                  'END:VEVENT',
+                  'END:VCALENDAR'
+                ].join('\r\n');
+                
+                window.dispatchEvent(new CustomEvent('SHOW_CALENDAR_PROMPT', { 
+                  detail: { icsContent, title: call.args.title } 
+                }));
+                result = { result: "Saved to DB, and user was shown a prompt to add to calendar." };
+              } else {
+                result = { result: "Successfully saved to local database!" };
+              }
             } catch (err) {
               console.error("DB Save Error:", err);
               result = { result: "Error saving: " + err };

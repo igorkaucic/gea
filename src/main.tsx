@@ -1,3 +1,24 @@
+// ═══════════════════════════════════════════════════════════════
+// POLYFILL: ReadableStream async iterator for iOS WKWebView
+// iOS standalone PWA mode uses WKWebView which may lack
+// ReadableStream[Symbol.asyncIterator], breaking `for await`
+// streaming in the @google/genai SDK's generateContentStream.
+// ═══════════════════════════════════════════════════════════════
+if (typeof ReadableStream !== 'undefined' && !ReadableStream.prototype[Symbol.asyncIterator]) {
+  (ReadableStream.prototype as any)[Symbol.asyncIterator] = async function* (this: ReadableStream) {
+    const reader = this.getReader();
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) return;
+        yield value;
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  };
+}
+
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'

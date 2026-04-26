@@ -378,7 +378,7 @@ When scheduling a reminder or calendar event, ALWAYS use this as your reference 
       const processCalls = async (calls: any[]) => {
         const responses: any[] = [];
         for (const call of calls) {
-          console.log("Executing function:", call.name, "with args:", call.args);
+          console.log('Izvršavam funkciju:', call.name, 's argumentima:', JSON.stringify(call.args));
 
           let result: any;
 
@@ -387,12 +387,13 @@ When scheduling a reminder or calendar event, ALWAYS use this as your reference 
               const dataToSave = { ...call.args, timestamp: new Date().toISOString() };
               const newId = await dbAdd('notes', dataToSave);
               aiActionStackRef.current.push({ type: 'save', store: 'notes', id: newId });
-              console.log("Successfully saved to notes store.");
+              console.log("Successfully saved to notes store. Args:", JSON.stringify(call.args));
               window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
               
-              if (call.args.is_reminder && call.args.start_time_iso && call.args.end_time_iso) {
+              if (call.args.is_reminder && call.args.start_time_iso) {
                 const start = new Date(call.args.start_time_iso);
-                const end = new Date(call.args.end_time_iso);
+                // default end to start + 1 hour if missing
+                const end = call.args.end_time_iso ? new Date(call.args.end_time_iso) : new Date(start.getTime() + 60 * 60 * 1000);
                 const pad = (n: number) => n.toString().padStart(2, '0');
                 const formatDate = (d: Date) => 
                   `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;

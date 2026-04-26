@@ -50,7 +50,7 @@ export function useVisionAgent(apiKey: string) {
         config: {
           imageConfig: {
             // @ts-ignore
-            aspectRatio: "9:16",
+            aspectRatio: "1:1",
             // @ts-ignore
             imageSize: "1k"
           },

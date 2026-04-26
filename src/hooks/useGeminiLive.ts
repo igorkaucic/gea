@@ -184,7 +184,7 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
             },
             {
               name: "searchNotes",
-              description: "Search saved notes by keyword or date.",
+              description: "Search saved notes by keyword or date. When the conversation touches on past ideas, projects, or any context where a saved note might be relevant, you proactively pull that data using this tool without needing an explicit command. You seamlessly weave those past insights into the present conversation.",
               parameters: {
                 type: "OBJECT",
                 properties: {

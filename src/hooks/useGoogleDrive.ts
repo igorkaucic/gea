@@ -5,6 +5,29 @@ const GDRIVE_CLIENT_ID = '52189932004-5gmr5374et671n3sfpjs6g3ic6f78f20.apps.goog
 const GDRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile';
 const GEA_ROOT_FOLDER = 'Gea';
 
+const IS_STANDALONE = window.matchMedia('(display-mode: standalone)').matches ||
+  (window.navigator as any).standalone === true;
+
+// On redirect return, extract token from URL hash BEFORE React mounts
+function extractRedirectToken(): string | null {
+  const hash = window.location.hash;
+  if (!hash || !hash.includes('access_token')) return null;
+  const params = new URLSearchParams(hash.substring(1));
+  const token = params.get('access_token');
+  if (token) {
+    localStorage.setItem('gdrive_token', token);
+    // Store a flag so we know we just came back from auth
+    localStorage.setItem('gdrive_just_authed', '1');
+    // Clean URL
+    window.history.replaceState({}, '', window.location.pathname);
+    console.log('[DRIVE] Token extracted from redirect URL');
+  }
+  return token;
+}
+
+// Run immediately on module load
+const REDIRECT_TOKEN = extractRedirectToken();
+
 export function useGoogleDrive() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [userInfo, setUserInfo] = useState<{name: string, email: string, picture: string} | null>(() => {
@@ -12,7 +35,7 @@ export function useGoogleDrive() {
     return saved ? JSON.parse(saved) : null;
   });
   const tokenClientRef = useRef<any>(null);
-  const cachedTokenRef = useRef<string | null>(localStorage.getItem('gdrive_token'));
+  const cachedTokenRef = useRef<string | null>(REDIRECT_TOKEN || localStorage.getItem('gdrive_token'));
 
   const initTokenClient = () => {
     if (tokenClientRef.current) return true;
@@ -20,11 +43,21 @@ export function useGoogleDrive() {
       alert('Google SDK not loaded. Check your internet or adblocker.');
       return false;
     }
-    tokenClientRef.current = (window as any).google.accounts.oauth2.initTokenClient({
+
+    const config: any = {
       client_id: GDRIVE_CLIENT_ID,
       scope: GDRIVE_SCOPES,
       callback: () => {}
-    });
+    };
+
+    // In standalone PWA mode, use redirect instead of popup (popups are blocked by iOS)
+    if (IS_STANDALONE) {
+      config.ux_mode = 'redirect';
+      config.redirect_uri = window.location.origin + window.location.pathname;
+      console.log('[DRIVE] Standalone mode detected — using redirect flow');
+    }
+
+    tokenClientRef.current = (window as any).google.accounts.oauth2.initTokenClient(config);
     return true;
   };
 
@@ -45,6 +78,19 @@ export function useGoogleDrive() {
   };
 
   const getToken = async (interactive: boolean = false): Promise<string> => {
+    // In standalone mode with redirect flow, we can't get a token via callback.
+    // If we have a cached token, use it. Otherwise, initiate redirect.
+    if (IS_STANDALONE && interactive) {
+      const cached = cachedTokenRef.current;
+      if (cached) return cached;
+      // Initiate redirect — this will navigate away from the app
+      if (!initTokenClient()) throw new Error('No SDK');
+      console.log('[DRIVE] Redirecting to Google for auth...');
+      tokenClientRef.current.requestAccessToken();
+      // This line won't execute — browser navigates away
+      throw new Error('Redirecting...');
+    }
+
     return new Promise((resolve, reject) => {
       if (!initTokenClient()) return reject(new Error('No SDK'));
 

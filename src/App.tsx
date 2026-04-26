@@ -40,6 +40,14 @@ function App() {
 
   useEffect(() => {
     initDB().then(loadData).catch(console.error);
+
+    // If we just returned from Google OAuth redirect, trigger sync automatically
+    if (localStorage.getItem('gdrive_just_authed') === '1') {
+      localStorage.removeItem('gdrive_just_authed');
+      console.log('[DRIVE] Returned from OAuth redirect — auto-syncing...');
+      // Small delay to let React mount fully
+      setTimeout(() => syncDrive(), 500);
+    }
     const handleToast = (e: any) => { setToast(e.detail); setTimeout(() => setToast(null), 4000); };
 
     // Debounced sync on data changes (manual deletes, etc.)

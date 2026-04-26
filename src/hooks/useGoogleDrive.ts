@@ -419,8 +419,10 @@ export function useGoogleDrive() {
     if (isSyncingRef.current) return;
     isSyncingRef.current = true;
     setIsSyncing(true);
+    console.log('[DRIVE] Manual sync initiated...');
     try {
       const token = await getToken(true);
+      console.log('[DRIVE] Token acquired:', token ? 'OK' : 'FAILED');
       const rootId = await findOrCreateFolder(token, GEA_ROOT_FOLDER);
       
       // Sync Notes
@@ -429,10 +431,11 @@ export function useGoogleDrive() {
       // Sync Images
       await syncImagesToDrive(token, rootId);
       
+      console.log('[DRIVE] Manual sync complete!');
       window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '✅ Notes & Images synced to Google Drive!'}));
     } catch (e: any) {
+      console.error('[DRIVE] Manual sync error:', e);
       window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '❌ Drive Error: ' + e.message}));
-      console.error(e);
     } finally {
       isSyncingRef.current = false;
       setIsSyncing(false);
@@ -460,6 +463,7 @@ export function useGoogleDrive() {
         await syncNotesToDrive(token, rootId);
         await syncImagesToDrive(token, rootId);
         console.log('🔄 [DRIVE SYNC] Silent auto-sync complete.');
+        window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '✅ Auto-synced!'}));
       } while (queuedSyncRef.current);
     } catch (e: any) {
       // DON'T clear the token here — only driveRequest's 401 handler should do that.

@@ -73,7 +73,7 @@ export function useGoogleDrive() {
   // Manual OAuth 2.0 implicit flow redirect for PWA standalone mode
   // (initTokenClient only supports popup — per official Google docs, no ux_mode for token client)
   const redirectToGoogleAuth = () => {
-    const redirectUri = window.location.origin + window.location.pathname;
+    const redirectUri = (window.location.origin + window.location.pathname).replace(/\/$/, '');
     const params = new URLSearchParams({
       client_id: GDRIVE_CLIENT_ID,
       redirect_uri: redirectUri,

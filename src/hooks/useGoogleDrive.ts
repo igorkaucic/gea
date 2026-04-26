@@ -496,6 +496,11 @@ ${paragraphs}
     try {
       const token = await getToken(true);
       console.log('[DRIVE] Token acquired:', token ? 'OK' : 'FAILED');
+
+      if (token && !localStorage.getItem('gdrive_user')) {
+        await fetchUserInfo(token);
+      }
+
       const rootId = await findOrCreateFolder(token, GEA_ROOT_FOLDER);
       
       // Sync Notes
@@ -532,6 +537,11 @@ ${paragraphs}
           console.log('[DRIVE SYNC] No cached token — skipping silently.');
           return;
         }
+
+        if (token && !localStorage.getItem('gdrive_user')) {
+          await fetchUserInfo(token);
+        }
+
         const rootId = await findOrCreateFolder(token, GEA_ROOT_FOLDER);
         await syncNotesToDrive(token, rootId);
         await syncImagesToDrive(token, rootId);

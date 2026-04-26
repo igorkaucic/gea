@@ -7,7 +7,7 @@ interface Props {
 }
 
 export default function GalleryPanel({ images, loadData }: Props) {
-  const [fullImage, setFullImage] = useState<string | null>(null);
+  const [fullImage, setFullImage] = useState<{ url: string; filename: string } | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [isSelecting, setIsSelecting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -68,7 +68,7 @@ export default function GalleryPanel({ images, loadData }: Props) {
 
     // Normal tap — open lightbox
     stateRef.current = { scale: 1, x: 0, y: 0, lastDist: 0, startX: 0, startY: 0, dragging: false, pinching: false };
-    setFullImage(img.full_b64);
+    setFullImage({ url: img.full_b64, filename: img.filename });
   }, [isSelecting]);
 
   const cancelSelection = useCallback(() => {
@@ -183,8 +183,8 @@ export default function GalleryPanel({ images, loadData }: Props) {
     e.stopPropagation();
     if (!fullImage) return;
     const a = document.createElement('a');
-    a.href = fullImage;
-    a.download = `gea_vision_${Date.now()}.png`;
+    a.href = fullImage.url;
+    a.download = fullImage.filename.endsWith('.png') ? fullImage.filename : `${fullImage.filename}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -261,7 +261,8 @@ export default function GalleryPanel({ images, loadData }: Props) {
       {/* ─── Lightbox ─── */}
       {fullImage && (
         <div className="lightbox" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-          <img ref={imgRef} src={fullImage} alt="Full view" draggable={false} />
+          <div className="lightbox-overlay" onClick={() => { setFullImage(null); stateRef.current.scale = 1; stateRef.current.x = 0; stateRef.current.y = 0; }} />
+          <img ref={imgRef} src={fullImage.url} alt="Full view" draggable={false} />
           <button className="lightbox-close" onClick={() => setFullImage(null)}>×</button>
           <button className="lightbox-download" onClick={handleDownload}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

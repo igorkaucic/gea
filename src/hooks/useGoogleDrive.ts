@@ -452,25 +452,19 @@ export function useGoogleDrive() {
         queuedSyncRef.current = false;
         let token = cachedTokenRef.current;
         if (!token) {
-          // In standalone PWA mode, popups are blocked so we can't acquire tokens silently.
-          // User needs to manually sync via Settings to establish a session.
-          console.warn('[DRIVE SYNC] No cached token — skipping auto-sync. Reconnect in Settings.');
-          window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: 'ℹ️ Drive not connected. Tap Sync in Settings to reconnect.'}));
+          // No token — skip silently. User will manually sync when ready.
+          console.log('[DRIVE SYNC] No cached token — skipping silently.');
           return;
         }
-        if (token) {
-          const rootId = await findOrCreateFolder(token, GEA_ROOT_FOLDER);
-          await syncNotesToDrive(token, rootId);
-          await syncImagesToDrive(token, rootId);
-          console.log('🔄 [DRIVE SYNC] Silent auto-sync successfully uploaded files to cloud.');
-          window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '✅ Auto-sync complete!'}));
-        }
+        const rootId = await findOrCreateFolder(token, GEA_ROOT_FOLDER);
+        await syncNotesToDrive(token, rootId);
+        await syncImagesToDrive(token, rootId);
+        console.log('🔄 [DRIVE SYNC] Silent auto-sync complete.');
       } while (queuedSyncRef.current);
     } catch (e: any) {
-      cachedTokenRef.current = null;
-      localStorage.removeItem('gdrive_token');
-      console.warn('Silent sync failed:', e.message);
-      window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '⚠️ Sync failed: ' + e.message}));
+      // DON'T clear the token here — only driveRequest's 401 handler should do that.
+      // Network errors, timeouts, etc. are transient and shouldn't kill future syncs.
+      console.warn('[DRIVE SYNC] Silent sync failed:', e.message);
     } finally {
       isSyncingRef.current = false;
       setIsSyncing(false);

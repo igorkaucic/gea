@@ -68,18 +68,24 @@ function App() {
     if (outcome === 'accepted') setDeferredPrompt(null);
   };
 
-  // Auto-sync after AI conversation ends
+  // Auto-sync after AI conversation ends (waits for image gen to finish)
   useEffect(() => {
-    if (isActive) { aiHasSpoken.current = true; }
-    else {
+    if (isActive) { aiHasSpoken.current = true; return; }
+    if (!aiHasSpoken.current || !apiKey) return;
+
+    // If vision agent is still generating, poll until it's done
+    const trySync = () => {
+      if (isGenerating) {
+        setTimeout(trySync, 2000);
+        return;
+      }
+      aiHasSpoken.current = false;
       loadData().then(() => {
-        if (aiHasSpoken.current && apiKey) {
-          aiHasSpoken.current = false;
-          window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '🔄 Auto-sync started...' }));
-          trySilentSync();
-        }
+        window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '🔄 Auto-sync started...' }));
+        trySilentSync();
       });
-    }
+    };
+    trySync();
   }, [isActive]);
 
   const copyLogs = async () => {

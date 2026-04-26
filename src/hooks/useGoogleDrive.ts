@@ -432,12 +432,11 @@ export function useGoogleDrive() {
         queuedSyncRef.current = false;
         let token = cachedTokenRef.current;
         if (!token) {
-          try {
-            token = await getToken();
-          } catch (err: any) {
-            window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '⚠️ Auto-sync failed: Please reconnect Google Drive in Settings.'}));
-            throw err;
-          }
+          // In standalone PWA mode, popups are blocked so we can't acquire tokens silently.
+          // User needs to manually sync via Settings to establish a session.
+          console.warn('[DRIVE SYNC] No cached token — skipping auto-sync. Reconnect in Settings.');
+          window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: 'ℹ️ Drive not connected. Tap Sync in Settings to reconnect.'}));
+          return;
         }
         if (token) {
           const rootId = await findOrCreateFolder(token, GEA_ROOT_FOLDER);

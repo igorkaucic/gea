@@ -613,7 +613,7 @@ You are GEA. You are having a spoken conversation with the user. You have your o
           else if (call.name === "generateImage") {
             try {
               const prompt = call.args?.prompt || '';
-              const filename = call.args?.filename || 'gea_image';
+              const filename = call.args?.filename;
               console.log('🎨 [VISION] Dispatching image generation:', prompt.substring(0, 80) + '...');
               window.dispatchEvent(new CustomEvent('GENERATE_IMAGE', { detail: { prompt, filename } }));
               setThoughts(prev => prev + `<br><span style="color:#FFB300">🎨 Vision Agent dispatched [${filename}] — generating in background...</span><br>`);

@@ -93,7 +93,7 @@ export function useVisionAgent(apiKey: string) {
 
       if (imageData) {
         const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-        const generatedFilename = providedFilename ? `${providedFilename}_${dateStr}` : `gea_image_${dateStr}`;
+        const generatedFilename = `${providedFilename}_${dateStr}`;
 
         const b64Url = `data:${imageMime};base64,${imageData}`;
         const newId = await dbAdd('images', {

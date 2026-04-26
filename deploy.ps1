@@ -28,6 +28,16 @@ if ($parts.Count -eq 2) {
 Set-Content -Path $versionFile -Value "export const APP_VERSION = '$newVersion';" -Encoding UTF8
 Write-Host " Version bumped: $currentVersion -> $newVersion" -ForegroundColor Green
 
+# Patch service worker version to trigger auto-update
+$swFile = "public/sw.js"
+if (Test-Path $swFile) {
+    $swContent = Get-Content $swFile -Raw
+    $swContent = $swContent -replace "// VERSION: .*", "// VERSION: $newVersion"
+    $swContent = $swContent -replace "const CACHE_VERSION = 'gea-v.*?'", "const CACHE_VERSION = 'gea-v$newVersion'"
+    Set-Content -Path $swFile -Value $swContent -Encoding UTF8 -NoNewline
+    Write-Host " SW version synced: gea-v$newVersion" -ForegroundColor Green
+}
+
 # Build
 Write-Host "Building..." -ForegroundColor Yellow
 npm run build

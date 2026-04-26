@@ -114,7 +114,7 @@ export default function GalleryPanel({ images }: Props) {
         <div className="gallery-grid">
           {images.map((img: any) => (
             <div key={img.id} className="gallery-item" onClick={() => { stateRef.current = { scale: 1, x: 0, y: 0, lastDist: 0, startX: 0, startY: 0, dragging: false, pinching: false }; setFullImage(img.full_b64); }}>
-              <img src={img.thumbnail_b64} alt={img.prompt || 'Generated'} loading="lazy" />
+              <img src={img.thumbnail_b64 || img.full_b64} alt={img.prompt || 'Generated'} loading="lazy" />
             </div>
           ))}
         </div>

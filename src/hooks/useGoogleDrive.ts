@@ -335,7 +335,7 @@ export function useGoogleDrive() {
             const full_b64 = await base64Promise;
             
             const filename = file.name.replace('.png', '').split('_')[0] || 'gea_image';
-            await dbAdd('images', { filename, full_b64, timestamp: new Date().toISOString() });
+            await dbAdd('images', { filename, full_b64, thumbnail_b64: full_b64, prompt: filename, timestamp: new Date().toISOString() });
           } catch (e) { console.error("Restore image failed", e); }
         }
       }

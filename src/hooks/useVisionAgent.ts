@@ -30,6 +30,8 @@ export function useVisionAgent(apiKey: string) {
     if (!apiKey) return null;
 
     const jobId = ++jobCounter;
+    const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+    const generatedFilename = `${providedFilename}_${dateStr}`;
     const newJob: VisionJob = { id: jobId, prompt, status: 'running', text: `<span class="v-label">[JOB #${jobId}]</span> <span class="v-prompt">▶ ${prompt}</span>\n\n<span class="v-label">⏳ Generating...</span>\n` };
     jobsRef.current = [...jobsRef.current, newJob];
     setJobs([...jobsRef.current]);
@@ -87,16 +89,14 @@ export function useVisionAgent(apiKey: string) {
             imageData = part.inlineData.data;
             imageMime = part.inlineData.mimeType || 'image/png';
             const b64 = `data:${imageMime};base64,${imageData}`;
-            updateJob(jobId, { previewImage: b64 });
+            appendText(jobId, '\n<span class="v-label">[ 📦 Image chunk dispatched to Gallery ]</span>');
+            window.dispatchEvent(new CustomEvent('OPEN_LIGHTBOX', { detail: { url: b64, filename: generatedFilename } }));
           }
         }
       }
       console.info(`[VISION_LOG] Stream finished. Total text length: ${fullText.length}`);
 
       if (imageData) {
-        const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
-        const generatedFilename = `${providedFilename}_${dateStr}`;
-
         const b64Url = `data:${imageMime};base64,${imageData}`;
         const newId = await dbAdd('images', {
           prompt,
@@ -125,7 +125,7 @@ export function useVisionAgent(apiKey: string) {
   }, [apiKey]);
 
   const isGenerating = jobsRef.current.some(j => j.status === 'running');
-  const visionThoughts = jobs.map(j => j.text + (j.previewImage ? `\n<div style="margin-top: 8px;"><img src="${j.previewImage}" style="max-width: 100%; height: auto; border-radius: 4px; border: 1px solid var(--border);" /></div>` : '')).join('\n\n');
+  const visionThoughts = jobs.map(j => j.text).join('\n\n');
 
   const clearVisionThoughts = useCallback(() => {
     jobsRef.current = [];

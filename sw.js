@@ -1,6 +1,6 @@
 ﻿// GEA Service Worker â€” Auto-Update Engine
-// VERSION: 10.4
-const CACHE_VERSION = 'gea-v10.4';
+// VERSION: 10.5
+const CACHE_VERSION = 'gea-v10.5';
 const STATIC_CACHE = CACHE_VERSION + '-static';
 
 // Assets to pre-cache on install

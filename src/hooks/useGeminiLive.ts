@@ -246,7 +246,7 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
             },
             {
               name: "generateImage",
-              description: "Generate an image based on user request.This tool can also create text in the image with great accuracy.",
+              description: "Generate an image based on user request. This tool can also create text in the image with great accuracy, and it is highly capable of generating grid layouts and multi-panel images.",
               parameters: {
                 type: "OBJECT",
                 properties: {

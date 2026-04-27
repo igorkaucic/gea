@@ -19,6 +19,7 @@ function App() {
   const [images, setImages] = useState<any[]>([]);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [calendarPrompt, setCalendarPrompt] = useState<any>(null);
+  const [navigationPrompt, setNavigationPrompt] = useState<any>(null);
 
   const { isActive, isMuted, UIState, statusText, thoughts, connect, stopAll, toggleMute, sendTextMessage } = useGeminiLive(apiKey, 'Leda');
   const { syncDrive, trySilentSync, isSyncing, userInfo, logoutDrive } = useGoogleDrive();
@@ -75,6 +76,11 @@ function App() {
     };
     window.addEventListener('SHOW_CALENDAR_PROMPT', handleCalPrompt);
 
+    const handleNavPrompt = (e: any) => {
+      setNavigationPrompt(e.detail);
+    };
+    window.addEventListener('SHOW_NAVIGATION_PROMPT', handleNavPrompt);
+
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -91,6 +97,7 @@ function App() {
       window.removeEventListener('OPEN_LIGHTBOX', handleOpenLightbox);
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('SHOW_CALENDAR_PROMPT', handleCalPrompt);
+      window.removeEventListener('SHOW_NAVIGATION_PROMPT', handleNavPrompt);
       if (syncDebounce) clearTimeout(syncDebounce);
     };
   }, [isActive, isGenerating]);
@@ -158,12 +165,14 @@ function App() {
       {calendarPrompt && (
         <div style={{
           position: 'fixed', bottom: '80px', left: '20px', right: '20px',
-          background: '#FF00FF', color: '#000', padding: '16px', borderRadius: '12px',
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+          border: '1.5px solid rgba(255,179,0,0.3)', color: '#FFB300', 
+          padding: '16px', borderRadius: '16px',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          boxShadow: '0 10px 40px rgba(255,0,255,0.5)', zIndex: 9999,
+          boxShadow: '0 4px 24px rgba(255,179,0,0.2)', zIndex: 9999,
           animation: 'fadeUp 0.3s ease-out forwards'
         }}>
-          <span style={{fontWeight: 'bold', fontSize: '14px', flex: 1, marginRight: '10px'}}>📅 {calendarPrompt.title}</span>
+          <span style={{fontWeight: '800', fontSize: '14px', flex: 1, marginRight: '10px', textShadow: '0 0 4px rgba(255,179,0,0.4)', letterSpacing: '0.5px'}}>📅 {calendarPrompt.title.toUpperCase()}</span>
           <button onClick={() => {
              const blob = new Blob([calendarPrompt.icsContent], { type: 'text/calendar;charset=utf-8' });
              const url = URL.createObjectURL(blob);
@@ -176,10 +185,33 @@ function App() {
              setTimeout(() => URL.revokeObjectURL(url), 1000);
              setCalendarPrompt(null);
           }} style={{
-            background: '#000', color: '#FF00FF', border: '1px solid #FF00FF', borderRadius: '8px', 
-            padding: '10px 18px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer'
+            background: 'rgba(255,179,0,0.15)', color: '#FFB300', border: '1.5px solid rgba(255,179,0,0.5)', borderRadius: '8px', 
+            padding: '10px 18px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', textShadow: '0 0 4px rgba(255,179,0,0.4)'
           }}>ADD TO CALENDAR</button>
-          <button onClick={() => setCalendarPrompt(null)} style={{background: 'transparent', border: 'none', color: '#000', marginLeft: '10px', fontSize: '16px'}}>✕</button>
+          <button onClick={() => setCalendarPrompt(null)} style={{background: 'transparent', border: 'none', color: '#FFB300', marginLeft: '10px', fontSize: '18px', textShadow: '0 0 4px rgba(255,179,0,0.4)'}}>✕</button>
+        </div>
+      )}
+
+      {navigationPrompt && (
+        <div style={{
+          position: 'fixed', bottom: '80px', left: '20px', right: '20px',
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+          border: '1.5px solid rgba(0,255,136,0.3)', color: 'var(--success)', 
+          padding: '16px', borderRadius: '16px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          boxShadow: '0 4px 24px rgba(0,255,136,0.2)', zIndex: 9999,
+          animation: 'fadeUp 0.3s ease-out forwards'
+        }}>
+          <span style={{fontWeight: '800', fontSize: '14px', flex: 1, marginRight: '10px', textShadow: '0 0 4px rgba(0,255,136,0.4)', letterSpacing: '0.5px'}}>📍 {navigationPrompt.odrediste.toUpperCase()}</span>
+          <button onClick={() => {
+             const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(navigationPrompt.odrediste)}`;
+             window.open(url, '_blank');
+             setNavigationPrompt(null);
+          }} style={{
+            background: 'rgba(0,255,136,0.15)', color: 'var(--success)', border: '1.5px solid rgba(0,255,136,0.5)', borderRadius: '8px', 
+            padding: '10px 18px', fontWeight: '800', fontSize: '12px', cursor: 'pointer', textShadow: '0 0 4px rgba(0,255,136,0.4)'
+          }}>NAVIGATE</button>
+          <button onClick={() => setNavigationPrompt(null)} style={{background: 'transparent', border: 'none', color: 'var(--success)', marginLeft: '10px', fontSize: '18px', textShadow: '0 0 4px rgba(0,255,136,0.4)'}}>✕</button>
         </div>
       )}
 

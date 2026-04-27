@@ -271,6 +271,17 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
                 },
                 required: ["cmd", "args"]
               }
+            },
+            {
+              name: "prikaziNavigaciju",
+              description: "Use this to give the user a navigation button for Google Maps. Always provide an exact physical address (Street name and number, City).",
+              parameters: {
+                type: "OBJECT",
+                properties: {
+                  odrediste: { type: "STRING", description: "The exact address to navigate to" }
+                },
+                required: ["odrediste"]
+              }
             }
           ]
         }
@@ -660,6 +671,17 @@ When scheduling a reminder or calendar event, ALWAYS use this as your reference 
               result = { result: "Image generation started! The Vision Agent is processing this in the background. You can continue talking while it generates." };
             } catch (err) {
               result = { result: "Error dispatching image generation: " + err };
+            }
+          }
+
+          else if (call.name === "prikaziNavigaciju") {
+            try {
+              window.dispatchEvent(new CustomEvent('SHOW_NAVIGATION_PROMPT', {
+                detail: { odrediste: call.args.odrediste }
+              }));
+              result = { result: "Prikazan gumb za navigaciju na ekranu. Reci korisniku da ga pritisne." };
+            } catch (err) {
+              result = { result: "Greška pri prikazu navigacije: " + err };
             }
           }
 

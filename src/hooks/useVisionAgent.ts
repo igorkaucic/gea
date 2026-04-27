@@ -52,7 +52,7 @@ export function useVisionAgent(apiKey: string) {
             // @ts-ignore
             aspectRatio: "1:1",
             // @ts-ignore
-            imageSize: "1k"
+            imageSize: "512"
           },
           responseModalities: ['IMAGE', 'TEXT'],
           thinkingConfig: {

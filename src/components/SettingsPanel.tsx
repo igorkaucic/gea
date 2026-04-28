@@ -1,4 +1,5 @@
 import { APP_VERSION } from '../version';
+import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   apiKey: string;
@@ -15,6 +16,24 @@ export default function SettingsPanel({ apiKey, setApiKey, userInfo, isSyncing, 
     localStorage.setItem('gemini_api_key', apiKey);
     window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '✅ API key saved.' }));
   };
+
+  const [syncLog, setSyncLog] = useState<string[]>([]);
+  const logRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const msg = (e as CustomEvent).detail as string;
+      setSyncLog(prev => [...prev.slice(-49), msg]);
+    };
+    window.addEventListener('SYNC_PROGRESS', handler);
+    return () => window.removeEventListener('SYNC_PROGRESS', handler);
+  }, []);
+
+  useEffect(() => {
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [syncLog]);
+
+  const clearLog = () => setSyncLog([]);
 
   return (
     <>
@@ -59,7 +78,33 @@ export default function SettingsPanel({ apiKey, setApiKey, userInfo, isSyncing, 
             </div>
           )}
 
-          <button className="settings-btn settings-btn-google" onClick={syncDrive} disabled={isSyncing}>
+          {syncLog.length > 0 && (
+            <div style={{
+              marginTop: '8px',
+              background: 'rgba(0,0,0,0.35)',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              padding: '8px 10px',
+              maxHeight: '160px',
+              overflowY: 'auto',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '10px',
+              color: 'var(--text-muted)',
+              lineHeight: '1.6',
+            }} ref={logRef}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', opacity: 0.6 }}>
+                <span>SYNC LOG</span>
+                <span style={{ cursor: 'pointer' }} onClick={clearLog}>✕ clear</span>
+              </div>
+              {syncLog.map((line, i) => (
+                <div key={i} style={{ color: (line.toLowerCase().includes('završ') || line.toLowerCase().includes('complete')) ? 'var(--phosphor)' : 'var(--text-muted)' }}>
+                  › {line}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button className="settings-btn settings-btn-google" onClick={() => { clearLog(); syncDrive(); }} disabled={isSyncing}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
               <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>

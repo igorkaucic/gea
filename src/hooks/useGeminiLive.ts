@@ -300,7 +300,7 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
               }
             },
             thinkingConfig: {
-              thinkingLevel: 'Minimal',
+              thinkingLevel: 'Low',
               includeThoughts: true
             }
           },

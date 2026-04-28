@@ -148,74 +148,74 @@ export function useGoogleDrive() {
 
   // --- Google Drive API helpers ---
 
-  const driveRequest = async (token: string, url: string, options: RequestInit = {}): Promise<any> => {
-    const resp = await fetch(url, {
+  const driveRequest = async (url: string, options: RequestInit = {}, expectsJson: boolean = true): Promise<any> => {
+    let currentToken = cachedTokenRef.current;
+    if (!currentToken) throw new Error('No token available');
+
+    const doFetch = (t: string) => fetch(url, {
       ...options,
-      headers: { 'Authorization': 'Bearer ' + token, ...(options.headers || {}) }
+      headers: { 'Authorization': 'Bearer ' + t, ...(options.headers || {}) }
     });
+
+    let resp = await doFetch(currentToken);
+
     if (resp.status === 401) {
-      // Token expired — try silent refresh before giving up
       console.warn('[DRIVE] Token expired. Attempting silent refresh...');
       try {
-        const newToken = await getToken(false);
-        // Retry the request with the fresh token
-        const retry = await fetch(url, {
-          ...options,
-          headers: { 'Authorization': 'Bearer ' + newToken, ...(options.headers || {}) }
-        });
-        if (!retry.ok) throw new Error(`Drive API error after refresh: ${retry.status}`);
-        return retry.json();
+        currentToken = await getToken(false);
+        resp = await doFetch(currentToken);
+        if (!resp.ok) throw new Error(`Drive API error after refresh: ${resp.status}`);
       } catch (refreshErr) {
-        // Silent refresh failed — clear everything
         cachedTokenRef.current = null;
         localStorage.removeItem('gdrive_token');
         throw new Error('Session expired. Tap Sync in Settings to reconnect.');
       }
     }
-    if (!resp.ok) throw new Error(`Drive API error: ${resp.status} ${resp.statusText}`);
+    
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => '');
+      throw new Error(`Drive API error: ${resp.status} ${resp.statusText} - ${errText}`);
+    }
+    
+    if (!expectsJson) return resp.text();
     return resp.json();
   };
 
-  const findOrCreateFolder = async (token: string, name: string, parentId?: string): Promise<string> => {
+  const findOrCreateFolder = async (name: string, parentId?: string): Promise<string> => {
     const cacheKey = `gdrive_folder_${name}_${parentId || 'root'}`;
     const cached = sessionStorage.getItem(cacheKey);
     if (cached) return cached;
 
     let q = `mimeType='application/vnd.google-apps.folder' and name='${name}' and trashed=false`;
     if (parentId) q += ` and '${parentId}' in parents`;
-    const searchResp = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)`, {
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
     
-    if (searchResp.ok) {
-      const searchData = await searchResp.json();
-      if (searchData.files && searchData.files.length > 0) {
-        sessionStorage.setItem(cacheKey, searchData.files[0].id);
-        return searchData.files[0].id;
-      }
+    const searchData = await driveRequest(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)`);
+    
+    if (searchData.files && searchData.files.length > 0) {
+      sessionStorage.setItem(cacheKey, searchData.files[0].id);
+      return searchData.files[0].id;
     }
 
     const metadata: any = { name, mimeType: 'application/vnd.google-apps.folder' };
     if (parentId) metadata.parents = [parentId];
-    const createResp = await fetch('https://www.googleapis.com/drive/v3/files', {
+    
+    const folder = await driveRequest('https://www.googleapis.com/drive/v3/files', {
       method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(metadata)
     });
     
-    if (!createResp.ok) throw new Error(`Folder creation failed: ${createResp.statusText}`);
-    const folder = await createResp.json();
     sessionStorage.setItem(cacheKey, folder.id);
     return folder.id;
   };
 
-  const listFilesInFolder = async (token: string, folderId: string): Promise<{id: string, name: string}[]> => {
+  const listFilesInFolder = async (folderId: string): Promise<{id: string, name: string}[]> => {
     const q = `'${folderId}' in parents and trashed=false`;
-    const data = await driveRequest(token, `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=1000`);
+    const data = await driveRequest(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name)&pageSize=1000`);
     return data.files || [];
   };
 
-  const uploadGoogleDoc = async (token: string, title: string, htmlContent: string, folderId: string, existingFileId?: string) => {
+  const uploadGoogleDoc = async (title: string, htmlContent: string, folderId: string, existingFileId?: string) => {
     const metadata: any = { name: title, mimeType: 'application/vnd.google-apps.document' };
     if (!existingFileId) metadata.parents = [folderId];
 
@@ -236,16 +236,13 @@ export function useGoogleDrive() {
       ? `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=multipart`
       : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
 
-    const resp = await fetch(url, {
+    return await driveRequest(url, {
       method: existingFileId ? 'PATCH' : 'POST',
       headers: {
-        'Authorization': 'Bearer ' + token,
         'Content-Type': `multipart/related; boundary=${boundary}`
       },
       body
     });
-    if (!resp.ok) throw new Error(`Upload failed: ${resp.status}`);
-    return resp.json();
   };
 
   const noteToHtml = (note: any): string => {
@@ -261,7 +258,7 @@ ${paragraphs}
 </body></html>`;
   };
 
-  const uploadImageFile = async (token: string, fileName: string, b64Data: string, folderId: string, existingFileId?: string) => {
+  const uploadImageFile = async (fileName: string, b64Data: string, folderId: string, existingFileId?: string) => {
     const mimeType = b64Data.split(';')[0].split(':')[1];
     const base64String = b64Data.split(',')[1];
     
@@ -286,28 +283,24 @@ ${paragraphs}
       ? `https://www.googleapis.com/upload/drive/v3/files/${existingFileId}?uploadType=multipart`
       : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
 
-    const resp = await fetch(url, {
+    return await driveRequest(url, {
       method: existingFileId ? 'PATCH' : 'POST',
       headers: {
-        'Authorization': 'Bearer ' + token,
         'Content-Type': `multipart/related; boundary=${boundary}`
       },
       body
     });
-    if (!resp.ok) throw new Error(`Image Upload failed: ${resp.status}`);
-    return resp.json();
   };
 
-  const deleteFile = async (token: string, fileId: string) => {
-    await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': 'Bearer ' + token }
-    });
+  const deleteFile = async (fileId: string) => {
+    await driveRequest(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+      method: 'DELETE'
+    }, false);
   };
 
   // --- Core sync logic: Destructive Mirror ---
 
-  const syncNotesToDrive = async (token: string, rootId: string, emitProgress: (msg: string) => void) => {
+  const syncNotesToDrive = async (rootId: string, emitProgress: (msg: string) => void) => {
     emitProgress('Dohvaćam lokalne bilješke...');
     const allNotes = await dbGetAll('notes');
     if (allNotes.length === 0) return;
@@ -320,16 +313,16 @@ ${paragraphs}
       grouped[folder].push(note);
     }
 
-    const existingFolders = await listFilesInFolder(token, rootId);
+    const existingFolders = await listFilesInFolder(rootId);
     const existingFolderMap: Record<string, string> = {};
     for (const f of existingFolders) existingFolderMap[f.name] = f.id;
 
     const syncedFolderNames = new Set<string>();
     for (const [folderName, notes] of Object.entries(grouped)) {
       syncedFolderNames.add(folderName);
-      const folderId = await findOrCreateFolder(token, folderName, rootId);
+      const folderId = await findOrCreateFolder(folderName, rootId);
 
-      const existingFiles = await listFilesInFolder(token, folderId);
+      const existingFiles = await listFilesInFolder(folderId);
       const existingFileMap: Record<string, string> = {};
       for (const f of existingFiles) existingFileMap[f.name] = f.id;
 
@@ -345,9 +338,7 @@ ${paragraphs}
 
         if (!existingFileMap[docTitle]) {
           emitProgress(`Spremam bilješku: ${docTitleBase}...`);
-          // Note: we don't pass existingId because we always create new hashes,
-          // old hashes will be deleted in the cleanup phase.
-          await uploadGoogleDoc(token, docTitle, htmlContent, folderId);
+          await uploadGoogleDoc(docTitle, htmlContent, folderId);
         }
       }
 
@@ -355,25 +346,25 @@ ${paragraphs}
       for (const [fileName, fileId] of Object.entries(existingFileMap)) {
         if (!syncedFileNames.has(fileName)) {
           emitProgress(`Brišem staru verziju: ${fileName}...`);
-          await deleteFile(token, fileId);
+          await deleteFile(fileId);
         }
       }
     }
 
     for (const [folderName, folderId] of Object.entries(existingFolderMap)) {
       if (folderName !== 'Images' && !syncedFolderNames.has(folderName) && !folderName.startsWith('database_backup_')) {
-        await deleteFile(token, folderId);
+        await deleteFile(folderId);
       }
     }
   };
 
-  const syncImagesToDrive = async (token: string, rootId: string, emitProgress: (msg: string) => void) => {
+  const syncImagesToDrive = async (rootId: string, emitProgress: (msg: string) => void) => {
     emitProgress('Dohvaćam lokalne slike...');
     const allImages = await dbGetAll('images');
     if (allImages.length === 0) return;
 
-    const imagesRootId = await findOrCreateFolder(token, 'Images', rootId);
-    const existingFolders = await listFilesInFolder(token, imagesRootId);
+    const imagesRootId = await findOrCreateFolder('Images', rootId);
+    const existingFolders = await listFilesInFolder(imagesRootId);
 
     // Group images by YYYY-MM
     const grouped: Record<string, any[]> = {};
@@ -392,9 +383,9 @@ ${paragraphs}
 
     for (const [folderName, images] of Object.entries(grouped)) {
       syncedFolderNames.add(folderName);
-      const folderId = await findOrCreateFolder(token, folderName, imagesRootId);
+      const folderId = await findOrCreateFolder(folderName, imagesRootId);
       
-      const existingFiles = await listFilesInFolder(token, folderId);
+      const existingFiles = await listFilesInFolder(folderId);
       const existingFileMap: Record<string, string> = {};
       for (const f of existingFiles) existingFileMap[f.name] = f.id;
 
@@ -408,18 +399,18 @@ ${paragraphs}
 
         if (!existingFileMap[fileName]) {
            emitProgress(`Spremam sliku: ${fileName}...`);
-           await uploadImageFile(token, fileName, img.full_b64, folderId);
+           await uploadImageFile(fileName, img.full_b64, folderId);
         }
       }
 
       for (const [fileName, fileId] of Object.entries(existingFileMap)) {
-        if (!syncedFileNames.has(fileName)) await deleteFile(token, fileId);
+        if (!syncedFileNames.has(fileName)) await deleteFile(fileId);
       }
     }
 
     // Delete empty month folders
     for (const [folderName, folderId] of Object.entries(existingFolderMap)) {
-      if (!syncedFolderNames.has(folderName)) await deleteFile(token, folderId);
+      if (!syncedFolderNames.has(folderName)) await deleteFile(folderId);
     }
   };
 
@@ -454,21 +445,18 @@ ${paragraphs}
       const images = await dbGetAll('images');
 
       emitProgress('Tražim glavni direktorij...');
-      const rootId = await findOrCreateFolder(token, GEA_ROOT_FOLDER);
+      const rootId = await findOrCreateFolder(GEA_ROOT_FOLDER);
       
       // --- AUTOMATIC BACKUP & RESTORE LOGIC ---
       if (notes.length === 0 && images.length === 0) {
         emitProgress('Lokalna baza je prazna! Tražim sigurnosnu kopiju na Drive-u...');
-        const rootFiles = await listFilesInFolder(token, rootId);
+        const rootFiles = await listFilesInFolder(rootId);
         const backupFile = rootFiles.find(f => f.name.startsWith('database_backup_'));
         
         if (backupFile) {
           emitProgress('Pronađena sigurnosna kopija! Vraćam podatke...');
           try {
-            const rawRes = await fetch(`https://www.googleapis.com/drive/v3/files/${backupFile.id}?alt=media`, {
-              headers: { 'Authorization': 'Bearer ' + token }
-            });
-            const backupData = await rawRes.json();
+            const backupData = await driveRequest(`https://www.googleapis.com/drive/v3/files/${backupFile.id}?alt=media`);
             for (const n of backupData.notes || []) await dbPut('notes', n);
             for (const img of backupData.images || []) await dbPut('images', img);
             
@@ -490,11 +478,11 @@ ${paragraphs}
         const backupJson = JSON.stringify({ notes, images });
         const backupHash = await hashObject({ backupJson });
         const backupFilename = `database_backup_${backupHash}.json`;
-        const rootFiles = await listFilesInFolder(token, rootId);
+        const rootFiles = await listFilesInFolder(rootId);
         const oldBackup = rootFiles.find(f => f.name.startsWith('database_backup_'));
         
         if (!oldBackup || oldBackup.name !== backupFilename) {
-          if (oldBackup) await deleteFile(token, oldBackup.id);
+          if (oldBackup) await deleteFile(oldBackup.id);
           
           const metadata: any = { name: backupFilename, parents: [rootId] };
           const boundary = '---gea_boundary_' + Date.now();
@@ -510,10 +498,9 @@ ${paragraphs}
             `--${boundary}--`
           ].join('\r\n');
 
-          await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+          await driveRequest('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
             method: 'POST',
             headers: {
-              'Authorization': 'Bearer ' + token,
               'Content-Type': `multipart/related; boundary=${boundary}`
             },
             body
@@ -524,10 +511,10 @@ ${paragraphs}
       }
       
       // Sync Notes
-      await syncNotesToDrive(token, rootId, emitProgress);
+      await syncNotesToDrive(rootId, emitProgress);
       
       // Sync Images
-      await syncImagesToDrive(token, rootId, emitProgress);
+      await syncImagesToDrive(rootId, emitProgress);
       
       emitProgress('Sinkronizacija završena!');
       console.log('[DRIVE] Manual sync complete!');
@@ -569,18 +556,18 @@ ${paragraphs}
 
         const notes = await dbGetAll('notes');
         const images = await dbGetAll('images');
-        const rootId = await findOrCreateFolder(token, GEA_ROOT_FOLDER);
+        const rootId = await findOrCreateFolder(GEA_ROOT_FOLDER);
 
         if (notes.length > 0 || images.length > 0) {
           try {
             const backupJson = JSON.stringify({ notes, images });
             const backupHash = await hashObject({ backupJson });
             const backupFilename = `database_backup_${backupHash}.json`;
-            const rootFiles = await listFilesInFolder(token, rootId);
+            const rootFiles = await listFilesInFolder(rootId);
             const oldBackup = rootFiles.find(f => f.name.startsWith('database_backup_'));
             
             if (!oldBackup || oldBackup.name !== backupFilename) {
-              if (oldBackup) await deleteFile(token, oldBackup.id);
+              if (oldBackup) await deleteFile(oldBackup.id);
               
               const metadata: any = { name: backupFilename, parents: [rootId] };
               const boundary = '---gea_boundary_' + Date.now();
@@ -596,10 +583,9 @@ ${paragraphs}
                 `--${boundary}--`
               ].join('\r\n');
 
-              await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+              await driveRequest('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
                 method: 'POST',
                 headers: {
-                  'Authorization': 'Bearer ' + token,
                   'Content-Type': `multipart/related; boundary=${boundary}`
                 },
                 body
@@ -610,8 +596,8 @@ ${paragraphs}
           }
         }
 
-        await syncNotesToDrive(token, rootId, emitProgress);
-        await syncImagesToDrive(token, rootId, emitProgress);
+        await syncNotesToDrive(rootId, emitProgress);
+        await syncImagesToDrive(rootId, emitProgress);
         
         console.log('🔄 [DRIVE SYNC] Silent auto-sync complete.');
         window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '✅ Auto-synced!'}));

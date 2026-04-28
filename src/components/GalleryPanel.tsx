@@ -57,6 +57,7 @@ export default function GalleryPanel({ images, loadData }: Props) {
     if (fullIndex === null) return;
     stateRef.current = freshState();
     setLightboxDeleteArmed(false);
+    if (imgRef.current) { imgRef.current.style.transform = ''; imgRef.current.style.opacity = '1'; imgRef.current.style.transition = 'none'; }
     setFullIndex((fullIndex + 1) % images.length);
   }, [fullIndex, images.length]);
 
@@ -64,6 +65,7 @@ export default function GalleryPanel({ images, loadData }: Props) {
     if (fullIndex === null) return;
     stateRef.current = freshState();
     setLightboxDeleteArmed(false);
+    if (imgRef.current) { imgRef.current.style.transform = ''; imgRef.current.style.opacity = '1'; imgRef.current.style.transition = 'none'; }
     setFullIndex((fullIndex - 1 + images.length) % images.length);
   }, [fullIndex, images.length]);
 

@@ -301,11 +301,11 @@ ${paragraphs}
   // --- Core sync logic: Destructive Mirror ---
 
   const syncNotesToDrive = async (rootId: string, emitProgress: (msg: string) => void) => {
-    emitProgress('Dohvaćam lokalne bilješke...');
+    emitProgress('Loading local notes...');
     const allNotes = await dbGetAll('notes');
     if (allNotes.length === 0) return;
 
-    emitProgress('Pripremam strukturu direktorija za bilješke...');
+    emitProgress('Preparing folder structure for notes...');
     const grouped: Record<string, any[]> = {};
     for (const note of allNotes) {
       const folder = note.folder_name || 'Unsorted';
@@ -337,7 +337,7 @@ ${paragraphs}
         syncedFileNames.add(docTitle);
 
         if (!existingFileMap[docTitle]) {
-          emitProgress(`Spremam bilješku: ${docTitleBase}...`);
+          emitProgress(`Uploading note: ${docTitleBase}...`);
           await uploadGoogleDoc(docTitle, htmlContent, folderId);
         }
       }
@@ -345,7 +345,7 @@ ${paragraphs}
       // Cleanup old versions
       for (const [fileName, fileId] of Object.entries(existingFileMap)) {
         if (!syncedFileNames.has(fileName)) {
-          emitProgress(`Brišem staru verziju: ${fileName}...`);
+          emitProgress(`Deleting old version: ${fileName}...`);
           await deleteFile(fileId);
         }
       }
@@ -359,7 +359,7 @@ ${paragraphs}
   };
 
   const syncImagesToDrive = async (rootId: string, emitProgress: (msg: string) => void) => {
-    emitProgress('Dohvaćam lokalne slike...');
+    emitProgress('Loading local images...');
     const allImages = await dbGetAll('images');
     if (allImages.length === 0) return;
 
@@ -398,7 +398,7 @@ ${paragraphs}
         syncedFileNames.add(fileName);
 
         if (!existingFileMap[fileName]) {
-           emitProgress(`Spremam sliku: ${fileName}...`);
+           emitProgress(`Uploading image: ${fileName}...`);
            await uploadImageFile(fileName, img.full_b64, folderId);
         }
       }
@@ -440,40 +440,40 @@ ${paragraphs}
         await fetchUserInfo(token);
       }
 
-      emitProgress('Učitavam lokalnu bazu...');
+      emitProgress('Loading local database...');
       const notes = await dbGetAll('notes');
       const images = await dbGetAll('images');
 
-      emitProgress('Tražim glavni direktorij...');
+      emitProgress('Looking for root folder...');
       const rootId = await findOrCreateFolder(GEA_ROOT_FOLDER);
       
       // --- AUTOMATIC BACKUP & RESTORE LOGIC ---
       if (notes.length === 0 && images.length === 0) {
-        emitProgress('Lokalna baza je prazna! Tražim sigurnosnu kopiju na Drive-u...');
+        emitProgress('Local database is empty! Looking for backup on Drive...');
         const rootFiles = await listFilesInFolder(rootId);
         const backupFile = rootFiles.find(f => f.name.startsWith('database_backup_'));
         
         if (backupFile) {
-          emitProgress('Pronađena sigurnosna kopija! Vraćam podatke...');
+          emitProgress('Backup found! Restoring data...');
           try {
             const backupData = await driveRequest(`https://www.googleapis.com/drive/v3/files/${backupFile.id}?alt=media`);
             for (const n of backupData.notes || []) await dbPut('notes', n);
             for (const img of backupData.images || []) await dbPut('images', img);
             
-            window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '✅ Baza podataka je uspješno vraćena! Osvježavam aplikaciju...'}));
+            window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '✅ Database restored successfully! Reloading...'}));
             setTimeout(() => window.location.reload(), 1500);
             return;
           } catch (e) {
             console.error('Failed to restore backup', e);
-            window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '❌ Greška pri vraćanju baze!'}));
+            window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '❌ Failed to restore database!'}));
           }
         } else {
-          emitProgress('Nema sigurnosne kopije. Nastavljam s praznom bazom...');
+          emitProgress('No backup found. Continuing with empty database...');
         }
       }
 
       // Backup current DB state silently
-      emitProgress('Spremam sigurnosnu kopiju baze...');
+      emitProgress('Saving database backup...');
       try {
         const backupJson = JSON.stringify({ notes, images });
         const backupHash = await hashObject({ backupJson });
@@ -516,7 +516,7 @@ ${paragraphs}
       // Sync Images
       await syncImagesToDrive(rootId, emitProgress);
       
-      emitProgress('Sinkronizacija završena!');
+      emitProgress('Sync complete!');
       console.log('[DRIVE] Manual sync complete!');
       window.dispatchEvent(new CustomEvent('SHOW_TOAST', {detail: '✅ Notes & Images synced to Google Drive!'}));
     } catch (e: any) {

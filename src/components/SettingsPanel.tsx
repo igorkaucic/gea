@@ -97,7 +97,7 @@ export default function SettingsPanel({ apiKey, setApiKey, userInfo, isSyncing, 
                 <span style={{ cursor: 'pointer' }} onClick={clearLog}>✕ clear</span>
               </div>
               {syncLog.map((line, i) => (
-                <div key={i} style={{ color: (line.toLowerCase().includes('završ') || line.toLowerCase().includes('complete')) ? 'var(--phosphor)' : 'var(--text-muted)' }}>
+                <div key={i} style={{ color: line.toLowerCase().includes('complete') ? 'var(--phosphor)' : 'var(--text-muted)' }}>
                   › {line}
                 </div>
               ))}

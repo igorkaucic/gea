@@ -128,6 +128,7 @@ export default function GalleryPanel({ images, loadData }: Props) {
 
   // ── Lightbox touch handlers ──────────────────────────────────────────────
   const onTouchStart = (e: React.TouchEvent) => {
+    if (e.target !== imgRef.current) return;
     const s = stateRef.current;
     if (e.touches.length === 2) {
       s.pinching = true; s.dragging = false;

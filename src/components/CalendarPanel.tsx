@@ -20,7 +20,7 @@ export default function CalendarPanel({ notes, images, onNavigateToNotes, onNavi
 
   // Build day activity maps
   const dayNoteCounts: Record<number, number> = {};
-  for (const n of notes) {
+  for (const n of notes.filter((n: any) => !n.is_reminder)) {
     const d = new Date(n.timestamp);
     if (d.getMonth() === month && d.getFullYear() === year) {
       dayNoteCounts[d.getDate()] = (dayNoteCounts[d.getDate()] || 0) + 1;
@@ -33,6 +33,14 @@ export default function CalendarPanel({ notes, images, onNavigateToNotes, onNavi
       dayImageCounts[d.getDate()] = (dayImageCounts[d.getDate()] || 0) + 1;
     }
   }
+  // Reminders — keyed by their reminder date (start_time_iso), not creation date
+  const dayReminderCounts: Record<number, number> = {};
+  for (const n of notes.filter((n: any) => n.is_reminder && n.start_time_iso)) {
+    const d = new Date(n.start_time_iso);
+    if (d.getMonth() === month && d.getFullYear() === year) {
+      dayReminderCounts[d.getDate()] = (dayReminderCounts[d.getDate()] || 0) + 1;
+    }
+  }
 
   // Build cells
   const cells: { day: number; type: 'prev' | 'current' | 'next' }[] = [];
@@ -43,12 +51,20 @@ export default function CalendarPanel({ notes, images, onNavigateToNotes, onNavi
   for (let i = 1; i <= remaining; i++) cells.push({ day: i, type: 'next' });
 
   // Events for selected day
-  const events: { type: string; time: string; title: string; sub?: string; thumbnail?: string; full_b64?: string; filename?: string; }[] = [];
+  const events: { type: string; time: string; title: string; sub?: string; thumbnail?: string; full_b64?: string; filename?: string; isReminder?: boolean; isPast?: boolean; }[] = [];
   if (selectedDay) {
-    for (const n of notes) {
+    for (const n of notes.filter((n: any) => !n.is_reminder)) {
       const d = new Date(n.timestamp);
       if (d.getDate() === selectedDay && d.getMonth() === month && d.getFullYear() === year) {
         events.push({ type: 'note', time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), title: n.title || 'Untitled', sub: n.folder_name });
+      }
+    }
+    // Reminders by their reminder time
+    for (const n of notes.filter((n: any) => n.is_reminder && n.start_time_iso)) {
+      const d = new Date(n.start_time_iso);
+      if (d.getDate() === selectedDay && d.getMonth() === month && d.getFullYear() === year) {
+        const isPast = d < new Date();
+        events.push({ type: 'reminder', time: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), title: n.title || 'Reminder', sub: n.body, isReminder: true, isPast });
       }
     }
       for (const img of images) {
@@ -86,6 +102,7 @@ export default function CalendarPanel({ notes, images, onNavigateToNotes, onNavi
               const isSelected = !isBuffer && selectedDay === cell.day;
               const hasNotes = !isBuffer && (dayNoteCounts[cell.day] || 0) > 0;
               const hasImages = !isBuffer && (dayImageCounts[cell.day] || 0) > 0;
+              const hasReminders = !isBuffer && (dayReminderCounts[cell.day] || 0) > 0;
 
               return (
                 <div
@@ -94,9 +111,10 @@ export default function CalendarPanel({ notes, images, onNavigateToNotes, onNavi
                   onClick={() => !isBuffer && setSelectedDay(cell.day)}
                 >
                   <span>{cell.day}</span>
-                  {!isBuffer && (hasNotes || hasImages) && (
+                  {!isBuffer && (hasNotes || hasImages || hasReminders) && (
                     <div className="calendar-day-dots">
                       {hasNotes && <div className="calendar-day-dot" style={{ background: 'var(--phosphor)' }} />}
+                      {hasReminders && <div className="calendar-day-dot" style={{ background: '#ff8c00' }} />}
                       {hasImages && <div className="calendar-day-dot" style={{ background: 'var(--amber)' }} />}
                     </div>
                   )}
@@ -115,9 +133,9 @@ export default function CalendarPanel({ notes, images, onNavigateToNotes, onNavi
                   <div
                     key={i}
                     className="calendar-event"
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', ...(ev.isReminder ? { borderLeft: '2px solid #ff8c00', paddingLeft: '14px' } : {}) }}
                     onClick={() => {
-                      if (ev.type === 'note') {
+                      if (ev.type === 'note' || ev.type === 'reminder') {
                         onNavigateToNotes(new Date(year, month, 1), selectedDay);
                       } else if (ev.type === 'image' && ev.full_b64) {
                         window.dispatchEvent(new CustomEvent('OPEN_LIGHTBOX', { detail: { url: ev.full_b64, filename: ev.filename } }));
@@ -125,9 +143,9 @@ export default function CalendarPanel({ notes, images, onNavigateToNotes, onNavi
                       }
                     }}
                   >
-                    <div className="calendar-event-dot" style={{ background: ev.type === 'note' ? 'var(--phosphor)' : 'var(--amber)' }} />
+                    <div className="calendar-event-dot" style={{ background: ev.type === 'reminder' ? '#ff8c00' : ev.type === 'note' ? 'var(--phosphor)' : 'var(--amber)' }} />
                     <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                      <strong style={{ color: ev.type === 'note' ? 'var(--phosphor)' : 'var(--amber)', fontSize: '13px', fontFamily: 'var(--font-mono)' }}>{ev.time}</strong>
+                      <strong style={{ color: ev.type === 'reminder' ? '#ff8c00' : ev.type === 'note' ? 'var(--phosphor)' : 'var(--amber)', fontSize: '13px', fontFamily: 'var(--font-mono)' }}>{ev.isPast ? '⚠ ' : ev.type === 'reminder' ? '⏰ ' : ''}{ev.time}</strong>
                       <div>
                         <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{ev.title}</div>
                         {ev.sub && <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{ev.sub}</div>}

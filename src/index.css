@@ -654,6 +654,63 @@ html, body {
   font-family: var(--font-mono);
 }
 
+/* ===== NOTES TABS ===== */
+
+.notes-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 16px 12px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+}
+
+.notes-tab {
+  flex: 1;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.notes-tab.active {
+  background: var(--phosphor-glow);
+  border-color: var(--phosphor-dim);
+  color: var(--phosphor);
+}
+
+.notes-tab.active.reminder {
+  background: rgba(255, 140, 0, 0.1);
+  border-color: rgba(255, 140, 0, 0.4);
+  color: #ff8c00;
+}
+
+.notes-tab-badge {
+  background: var(--phosphor-dim);
+  color: var(--phosphor);
+  border-radius: 50px;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 1px 6px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.notes-tab-badge.reminder {
+  background: rgba(255, 140, 0, 0.2);
+  color: #ff8c00;
+}
+
 /* ===== NOTES ===== */
 
 .notes-container {
@@ -711,7 +768,7 @@ html, body {
 .lightbox-download {
   position: absolute;
   top: 20px;
-  right: 80px; /* next to the close button */
+  right: 132px;
   width: 44px;
   height: 44px;
   background: rgba(0, 0, 0, 0.5);
@@ -725,6 +782,38 @@ html, body {
   justify-content: center;
   z-index: 101;
   backdrop-filter: blur(10px);
+}
+
+/* Lightbox Delete Button */
+.lightbox-delete {
+  position: absolute;
+  top: 20px;
+  right: 80px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 101;
+  backdrop-filter: blur(10px);
+}
+
+/* Lightbox image counter */
+.lightbox-counter {
+  position: absolute;
+  top: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  font-family: var(--font-mono);
+  pointer-events: none;
 }
 
 .folder-children {

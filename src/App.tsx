@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useGeminiLive } from './hooks/useGeminiLive';
 import { useGoogleDrive } from './hooks/useGoogleDrive';
 import { useVisionAgent } from './hooks/useVisionAgent';
-import { initDB, dbGetAll } from './db/db';
+import { initDB, dbGetAll, dbDelete } from './db/db';
 import CallControls from './components/CallControls';
 import HomePanel from './components/HomePanel';
 import GalleryPanel from './components/GalleryPanel';
@@ -29,7 +29,28 @@ function App() {
 
   const loadData = async () => {
     try {
-      const n = await dbGetAll('notes');
+      let n = await dbGetAll('notes');
+      
+      // Auto-cleanup: delete reminders that are >24 hours past their start time
+      const now = Date.now();
+      const OneDayMs = 24 * 60 * 60 * 1000;
+      let cleanedNotes = false;
+      
+      n = await Promise.all(n.map(async (note: any) => {
+        if (note.is_reminder && note.start_time_iso) {
+          const remTime = new Date(note.start_time_iso).getTime();
+          if (now > remTime + OneDayMs) {
+            await dbDelete('notes', note.id);
+            cleanedNotes = true;
+            return null;
+          }
+        }
+        return note;
+      }));
+      
+      n = n.filter(Boolean);
+      if (cleanedNotes) window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
+
       n.sort((a: any, b: any) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
       setNotes(n);
       const img = await dbGetAll('images');

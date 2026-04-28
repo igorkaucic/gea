@@ -9,6 +9,7 @@ interface Props {
 }
 
 export default function NotesPanel({ notes, loadData, trySilentSync, isActive }: Props) {
+  const [activeTab, setActiveTab] = useState<'notes' | 'reminders'>('notes');
   const [collapsedDirs, setCollapsedDirs] = useState<Record<string, boolean>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -60,9 +61,14 @@ export default function NotesPanel({ notes, loadData, trySilentSync, isActive }:
     if (!isActive) trySilentSync();
   };
 
-  // Group notes by folder
+  // Separate reminders from regular notes
+  const regularNotes = notes.filter(n => !n.is_reminder);
+  const reminders = notes.filter(n => n.is_reminder)
+    .sort((a, b) => new Date(a.start_time_iso || a.timestamp).getTime() - new Date(b.start_time_iso || b.timestamp).getTime());
+
+  // Group regular notes by folder
   const grouped: Record<string, any[]> = {};
-  for (const note of notes) {
+  for (const note of regularNotes) {
     const folder = note.folder_name || 'Unsorted';
     if (!grouped[folder]) grouped[folder] = [];
     grouped[folder].push(note);
@@ -83,8 +89,63 @@ export default function NotesPanel({ notes, loadData, trySilentSync, isActive }:
   return (
     <>
       <h1 className="page-header">Notes</h1>
+
+      {/* ── Tab switcher ── */}
+      <div className="notes-tabs">
+        <button
+          className={`notes-tab ${activeTab === 'notes' ? 'active' : ''}`}
+          onClick={() => setActiveTab('notes')}
+        >
+          NOTES
+          {regularNotes.length > 0 && <span className="notes-tab-badge">{regularNotes.length}</span>}
+        </button>
+        <button
+          className={`notes-tab ${activeTab === 'reminders' ? 'active reminder' : ''}`}
+          onClick={() => setActiveTab('reminders')}
+        >
+          ⏰ REMINDERS
+          {reminders.length > 0 && <span className="notes-tab-badge reminder">{reminders.length}</span>}
+        </button>
+      </div>
+
       <div className="notes-container">
-        {notes.length === 0 ? (
+        {activeTab === 'reminders' ? (
+          reminders.length === 0 ? (
+            <div className="empty-state">
+              <div style={{ fontSize: '32px', opacity: 0.3 }}>⏰</div>
+              <div>No reminders yet.</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Say "remind me in 3 days to..." and Gea will set it up.</div>
+            </div>
+          ) : (
+            <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {reminders.map((note: any) => {
+                const remTime = note.start_time_iso ? new Date(note.start_time_iso) : null;
+                const isPast = remTime && remTime < new Date();
+                return (
+                  <div key={note.id} className="note-card" style={{ border: isPast ? '1px solid rgba(239,68,68,0.4)' : '1px solid rgba(255,140,0,0.35)', background: isPast ? 'rgba(239,68,68,0.04)' : 'rgba(255,140,0,0.04)' }}>
+                    {remTime && (
+                      <div style={{ fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 800, color: isPast ? '#ef4444' : '#ff8c00', marginBottom: '6px', letterSpacing: '0.5px' }}>
+                        {isPast ? '⚠ OVERDUE · ' : '⏰ '}{remTime.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })} · {remTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    )}
+                    <div className="note-title" style={{ color: 'var(--text-primary)' }}>{note.title || 'Reminder'}</div>
+                    {note.body && <div className="note-body">{note.body}</div>}
+                    <div className="note-meta">
+                      <span className="note-timestamp">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                        Created {note.timestamp ? new Date(note.timestamp).toLocaleDateString() : ''}
+                      </span>
+                      <button className="note-delete" onClick={() => handleDelete(note)}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ) : (
+          regularNotes.length === 0 ? (
           <div className="empty-state">
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.3 }}>
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -186,6 +247,7 @@ export default function NotesPanel({ notes, loadData, trySilentSync, isActive }:
               )}
             </div>
           ))
+        )
         )}
       </div>
 

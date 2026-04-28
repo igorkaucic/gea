@@ -340,7 +340,7 @@ export default function GalleryPanel({ images, loadData }: Props) {
       {/* ── Lightbox ── */}
       {fullImage && (
         <div className="lightbox" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
-          <div className="lightbox-overlay" onClick={closeLightbox} />
+          <div className="lightbox-overlay" />
           <img ref={imgRef} src={fullImage.full_b64} alt="Full view" draggable={false} />
 
           <button className="lightbox-close" onClick={closeLightbox}>×</button>

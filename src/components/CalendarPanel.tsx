@@ -3,7 +3,7 @@ import { useState } from 'react';
 interface Props {
   notes: any[];
   images: any[];
-  onNavigateToNotes: (month: Date, day: number) => void;
+  onNavigateToNotes: (month: Date, day: number, tab?: 'notes' | 'reminders') => void;
   onNavigateToGallery: () => void;
 }
 
@@ -136,7 +136,7 @@ export default function CalendarPanel({ notes, images, onNavigateToNotes, onNavi
                     style={{ cursor: 'pointer', ...(ev.isReminder ? { borderLeft: '2px solid #ff8c00', paddingLeft: '14px' } : {}) }}
                     onClick={() => {
                       if (ev.type === 'note' || ev.type === 'reminder') {
-                        onNavigateToNotes(new Date(year, month, 1), selectedDay);
+                        onNavigateToNotes(new Date(year, month, 1), selectedDay, ev.type === 'reminder' ? 'reminders' : 'notes');
                       } else if (ev.type === 'image' && ev.full_b64) {
                         window.dispatchEvent(new CustomEvent('OPEN_LIGHTBOX', { detail: { url: ev.full_b64, filename: ev.filename } }));
                         onNavigateToGallery();

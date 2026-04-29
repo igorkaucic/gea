@@ -6,10 +6,23 @@ interface Props {
   loadData: () => void;
   trySilentSync: () => void;
   isActive: boolean;
+  initialMonth?: Date;
+  initialTab?: 'notes' | 'reminders';
+  onNavigated?: () => void;
 }
 
-export default function NotesPanel({ notes, loadData, trySilentSync, isActive }: Props) {
+export default function NotesPanel({ notes, loadData, trySilentSync, isActive, initialMonth, initialTab, onNavigated }: Props) {
   const [activeTab, setActiveTab] = useState<'notes' | 'reminders'>('notes');
+  const [viewMonth, setViewMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+
+  // Jump to correct month+tab when navigating from Calendar
+  useEffect(() => {
+    if (initialMonth) {
+      setViewMonth(new Date(initialMonth.getFullYear(), initialMonth.getMonth(), 1));
+      if (initialTab) setActiveTab(initialTab);
+      onNavigated?.();
+    }
+  }, [initialMonth, initialTab]);
   const [collapsedDirs, setCollapsedDirs] = useState<Record<string, boolean>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -61,10 +74,18 @@ export default function NotesPanel({ notes, loadData, trySilentSync, isActive }:
     if (!isActive) trySilentSync();
   };
 
-  // Separate reminders from regular notes
-  const regularNotes = notes.filter(n => !n.is_reminder);
-  const reminders = notes.filter(n => n.is_reminder)
-    .sort((a, b) => new Date(a.start_time_iso || a.timestamp).getTime() - new Date(b.start_time_iso || b.timestamp).getTime());
+  // Filter by selected month
+  const vm = viewMonth;
+  const regularNotes = notes.filter(n => {
+    if (n.is_reminder) return false;
+    const d = new Date(n.timestamp);
+    return d.getMonth() === vm.getMonth() && d.getFullYear() === vm.getFullYear();
+  });
+  const reminders = notes.filter(n => {
+    if (!n.is_reminder) return false;
+    const d = new Date(n.start_time_iso || n.timestamp);
+    return d.getMonth() === vm.getMonth() && d.getFullYear() === vm.getFullYear();
+  }).sort((a, b) => new Date(a.start_time_iso || a.timestamp).getTime() - new Date(b.start_time_iso || b.timestamp).getTime());
 
   // Group regular notes by folder
   const grouped: Record<string, any[]> = {};
@@ -86,15 +107,34 @@ export default function NotesPanel({ notes, loadData, trySilentSync, isActive }:
     }
   };
 
+  const isCurrentMonth = vm.getMonth() === new Date().getMonth() && vm.getFullYear() === new Date().getFullYear();
+  const monthLabel = vm.toLocaleString('default', { month: 'long' }).toUpperCase() + ' ' + vm.getFullYear();
+
   return (
     <>
       <h1 className="page-header">Notes</h1>
+
+      {/* ── Month navigator ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px 10px', gap: '8px' }}>
+        <button
+          onClick={() => setViewMonth(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+          style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-muted)', fontSize: '16px', padding: '4px 10px', cursor: 'pointer', lineHeight: 1 }}
+        >‹</button>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', fontWeight: 800, letterSpacing: '1.5px', color: isCurrentMonth ? 'var(--phosphor)' : 'var(--text-secondary)' }}>
+          {monthLabel}
+        </span>
+        <button
+          onClick={() => setViewMonth(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+          style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-muted)', fontSize: '16px', padding: '4px 10px', cursor: 'pointer', lineHeight: 1 }}
+        >›</button>
+      </div>
 
       {/* ── Tab switcher ── */}
       <div className="notes-tabs">
         <button
           className={`notes-tab ${activeTab === 'notes' ? 'active' : ''}`}
           onClick={() => setActiveTab('notes')}
+          style={{ opacity: regularNotes.length === 0 && activeTab !== 'notes' ? 0.4 : 1 }}
         >
           NOTES
           {regularNotes.length > 0 && <span className="notes-tab-badge">{regularNotes.length}</span>}
@@ -102,6 +142,7 @@ export default function NotesPanel({ notes, loadData, trySilentSync, isActive }:
         <button
           className={`notes-tab ${activeTab === 'reminders' ? 'active reminder' : ''}`}
           onClick={() => setActiveTab('reminders')}
+          style={{ opacity: reminders.length === 0 && activeTab !== 'reminders' ? 0.4 : 1 }}
         >
           ⏰ REMINDERS
           {reminders.length > 0 && <span className="notes-tab-badge reminder">{reminders.length}</span>}

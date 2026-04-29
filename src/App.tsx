@@ -20,6 +20,7 @@ function App() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [calendarPrompt, setCalendarPrompt] = useState<any>(null);
   const [navigationPrompt, setNavigationPrompt] = useState<any>(null);
+  const [notesNav, setNotesNav] = useState<{ month: Date; tab: 'notes' | 'reminders' } | null>(null);
 
   const { isActive, isMuted, UIState, statusText, thoughts, connect, stopAll, toggleMute, sendTextMessage } = useGeminiLive(apiKey, 'Leda');
   const { syncDrive, trySilentSync, isSyncing, userInfo, logoutDrive } = useGoogleDrive();
@@ -161,7 +162,8 @@ function App() {
     }
   };
 
-  const handleNavigateToNotes = (_month: Date, _day: number) => {
+  const handleNavigateToNotes = (month: Date, _day: number, tab?: 'notes' | 'reminders') => {
+    setNotesNav({ month, tab: tab || 'notes' });
     setActivePage('notes');
   };
 
@@ -245,7 +247,7 @@ function App() {
           <GalleryPanel images={images} loadData={loadData} />
         </div>
         <div className={`page ${activePage === 'notes' ? 'active' : ''}`}>
-          <NotesPanel notes={notes} loadData={loadData} trySilentSync={trySilentSync} isActive={isActive} />
+          <NotesPanel notes={notes} loadData={loadData} trySilentSync={trySilentSync} isActive={isActive} initialMonth={notesNav?.month} initialTab={notesNav?.tab} onNavigated={() => setNotesNav(null)} />
         </div>
         <div className={`page ${activePage === 'calendar' ? 'active' : ''}`}>
           <CalendarPanel notes={notes} images={images} onNavigateToNotes={handleNavigateToNotes} onNavigateToGallery={() => setActivePage('gallery')} />

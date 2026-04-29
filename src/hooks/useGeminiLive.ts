@@ -212,6 +212,20 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
               }
             },
             {
+              name: "renameNote",
+              description: "Update an existing note's title, folder, or body. Use this when the user asks to rename, retitle, or recategorize a note. IMPORTANT: When the user says 'rename that note' or 'title that note' without specifying a name, you MUST first call searchNotes to find the note (look for folder_name='Manual' or today's date), read its body content, then autonomously generate a descriptive title and appropriate folder_name based on what the note is about. Do NOT ask the user what to name it — figure it out yourself.",
+              parameters: {
+                type: "OBJECT",
+                properties: {
+                  id: { type: "NUMBER", description: "The ID of the note to update (required)." },
+                  title: { type: "STRING", description: "New title." },
+                  folder_name: { type: "STRING", description: "New folder name." },
+                  body: { type: "STRING", description: "New body content (omit to keep existing)." }
+                },
+                required: ["id"]
+              }
+            },
+            {
               name: "searchImages",
               description: "Search for generated images by filename or prompt.",
               parameters: {
@@ -329,7 +343,8 @@ You hate wasting time with bad documentation or guessing. When you don't know so
 [CONTEXT]
 The current date and time is: ${new Date().toLocaleString('hr-HR')}.
 When scheduling a reminder or calendar event, ALWAYS use this as your reference point for relative times.
-`
+
+Manually created notes: The user can create notes manually in the app. These notes have folder_name='Manual' and a title like 'Note · 29 Apr 2026'. When the user says 'rename that note', 'title that note', or similar — call searchNotes first (query='Manual' or today's date), read the body, then autonomously call renameNote with a descriptive title and appropriate folder. Never ask the user what to name it. Figure it out from the content.`
             }]
           },
           sessionResumption: resumeHandle ? { handle: resumeHandle } : {}
@@ -472,6 +487,32 @@ When scheduling a reminder or calendar event, ALWAYS use this as your reference 
             } catch (err) {
               console.error("DB Query Error:", err);
               result = { result: "Error reading database: " + err };
+            }
+          }
+
+          else if (call.name === "renameNote") {
+            try {
+              const args = call.args || {};
+              if (!args.id) {
+                result = { result: "renameNote requires an id. Call searchNotes first to find the note." };
+              } else {
+                const existing = await dbGet('notes', args.id);
+                if (!existing) {
+                  result = { result: `No note with ID ${args.id}.` };
+                } else {
+                  const updated = {
+                    ...existing,
+                    title: args.title !== undefined ? args.title : existing.title,
+                    folder_name: args.folder_name !== undefined ? args.folder_name : existing.folder_name,
+                    body: args.body !== undefined ? args.body : existing.body,
+                  };
+                  await dbPut('notes', updated);
+                  window.dispatchEvent(new CustomEvent('DATA_CHANGED'));
+                  result = { result: `Updated note ID:${args.id} — now titled "${updated.title}" in folder "${updated.folder_name}"` };
+                }
+              }
+            } catch (err) {
+              result = { result: "Error updating note: " + err };
             }
           }
 

@@ -14,6 +14,10 @@ interface Props {
 export default function NotesPanel({ notes, loadData, trySilentSync, isActive, initialMonth, initialTab, onNavigated }: Props) {
   const [activeTab, setActiveTab] = useState<'notes' | 'reminders'>('notes');
   const [viewMonth, setViewMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+  const [isCreating, setIsCreating] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newBody, setNewBody] = useState('');
+  const newBodyRef = useRef<HTMLTextAreaElement>(null);
 
   // Jump to correct month+tab when navigating from Calendar
   useEffect(() => {
@@ -23,6 +27,14 @@ export default function NotesPanel({ notes, loadData, trySilentSync, isActive, i
       onNavigated?.();
     }
   }, [initialMonth, initialTab]);
+
+  // Auto-resize new note textarea
+  useEffect(() => {
+    if (newBodyRef.current) {
+      newBodyRef.current.style.height = 'auto';
+      newBodyRef.current.style.height = newBodyRef.current.scrollHeight + 'px';
+    }
+  }, [newBody]);
   const [collapsedDirs, setCollapsedDirs] = useState<Record<string, boolean>>({});
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -107,12 +119,70 @@ export default function NotesPanel({ notes, loadData, trySilentSync, isActive, i
     }
   };
 
+  const openNewNote = () => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('default', { day: 'numeric', month: 'short', year: 'numeric' });
+    setNewTitle(`Note · ${dateStr}`);
+    setNewBody('');
+    setIsCreating(true);
+    setTimeout(() => newBodyRef.current?.focus(), 100);
+  };
+
+  const saveNewNote = async () => {
+    if (!newBody.trim() && !newTitle.trim()) { setIsCreating(false); return; }
+    await dbPut('notes', {
+      title: newTitle.trim() || 'Untitled',
+      body: newBody.trim(),
+      folder_name: 'Manual',
+      timestamp: new Date().toISOString(),
+      is_reminder: false,
+    });
+    setIsCreating(false);
+    setNewTitle('');
+    setNewBody('');
+    loadData();
+    if (!isActive) trySilentSync();
+    // Jump to current month notes tab so new note is visible
+    setViewMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+    setActiveTab('notes');
+  };
+
   const isCurrentMonth = vm.getMonth() === new Date().getMonth() && vm.getFullYear() === new Date().getFullYear();
   const monthLabel = vm.toLocaleString('default', { month: 'long' }).toUpperCase() + ' ' + vm.getFullYear();
 
   return (
     <>
-      <h1 className="page-header">Notes</h1>
+      <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px 4px', gap: '8px' }}>
+        <h1 className="page-header" style={{ flex: 1, padding: 0, margin: 0 }}>Notes</h1>
+        <button
+          onClick={openNewNote}
+          style={{ background: 'var(--phosphor-glow)', border: '1px solid var(--phosphor-dim)', borderRadius: '8px', color: 'var(--phosphor)', fontSize: '20px', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, lineHeight: 1 }}
+          title="New note"
+        >+</button>
+      </div>
+
+      {/* ── Inline note creator ── */}
+      {isCreating && (
+        <div style={{ margin: '0 16px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--phosphor-dim)', borderRadius: '10px', padding: '12px', boxShadow: '0 0 20px var(--phosphor-glow)', animation: 'fadeIn 0.15s ease' }}>
+          <input
+            value={newTitle}
+            onChange={e => setNewTitle(e.target.value)}
+            style={{ width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border)', padding: '4px 0 8px', color: 'var(--phosphor)', fontFamily: 'var(--font-mono)', fontSize: '13px', fontWeight: 800, outline: 'none', letterSpacing: '0.3px', marginBottom: '10px' }}
+            placeholder="Title..."
+          />
+          <textarea
+            ref={newBodyRef}
+            value={newBody}
+            onChange={e => setNewBody(e.target.value)}
+            style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontFamily: 'var(--font-ui)', fontSize: '14px', lineHeight: '1.6', resize: 'none', outline: 'none', minHeight: '80px', display: 'block' }}
+            placeholder="Write your note..."
+          />
+          <div style={{ display: 'flex', gap: '8px', marginTop: '10px', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
+            <button onClick={saveNewNote} style={{ flex: 1, padding: '8px', background: 'var(--phosphor-glow)', color: 'var(--phosphor)', border: '1px solid var(--phosphor-dim)', borderRadius: '6px', fontWeight: 800, fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '0.5px' }}>✓ SAVE</button>
+            <button onClick={() => setIsCreating(false)} style={{ flex: 1, padding: '8px', background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: '6px', fontWeight: 800, fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font-mono)', letterSpacing: '0.5px' }}>✕ CANCEL</button>
+          </div>
+        </div>
+      )}
 
       {/* ── Month navigator ── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px 10px', gap: '8px' }}>

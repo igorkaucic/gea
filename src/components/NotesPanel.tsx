@@ -1,6 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { dbPut, dbDelete } from '../db/db';
 
+// Detect URLs and make them clickable
+function linkify(text: string): string {
+  const urlRegex = /(https?:\/\/[^\s<>"']+[^\s<>"'.,;:!?\)])/g;
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(urlRegex, url => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:var(--phosphor);text-decoration:underline;word-break:break-all;">${url}</a>`);
+}
+
 interface Props {
   notes: any[];
   loadData: () => void;
@@ -240,7 +248,7 @@ export default function NotesPanel({ notes, loadData, trySilentSync, isActive, i
                       </div>
                     )}
                     <div className="note-title" style={{ color: 'var(--text-primary)' }}>{note.title || 'Reminder'}</div>
-                    {note.body && <div className="note-body">{note.body}</div>}
+                    {note.body && <div className="note-body" dangerouslySetInnerHTML={{ __html: linkify(note.body).replace(/\n/g, '<br/>') }} />}
                     <div className="note-meta">
                       <span className="note-timestamp">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
@@ -325,7 +333,7 @@ export default function NotesPanel({ notes, loadData, trySilentSync, isActive, i
                             {note.is_reminder && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>}
                             {note.title || 'Untitled'}
                           </div>
-                          {note.body && <div className="note-body" style={note.is_reminder ? { borderLeft: '2px solid #FF00FF', paddingLeft: '8px' } : {}}>{note.body}</div>}
+                          {note.body && <div className="note-body" style={note.is_reminder ? { borderLeft: '2px solid #FF00FF', paddingLeft: '8px' } : {}} dangerouslySetInnerHTML={{ __html: linkify(note.body).replace(/\n/g, '<br/>') }} />}
                           {note.is_reminder && note.start_time_iso && (
                             <div style={{ fontSize: '11px', color: '#FF00FF', marginTop: '6px', fontWeight: 'bold' }}>
                               ⏰ {new Date(note.start_time_iso).toLocaleString()}

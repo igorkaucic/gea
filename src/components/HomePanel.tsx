@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 
 interface VisionJob {
   id: number;
@@ -27,7 +27,6 @@ const ASCII_LOGO = ` ██████╗ ███████╗ ████
 ╚██████╔╝███████╗██║  ██║
  ╚═════╝ ╚══════╝╚═╝  ╚═╝`;
 
-/* Reusable fake terminal chrome bar */
 function TerminalChrome({ title, color, isLive, onPasteAction }: { title: string; color: string; isLive?: boolean, onPasteAction?: () => void }) {
   return (
     <div className="term-chrome">
@@ -39,7 +38,7 @@ function TerminalChrome({ title, color, isLive, onPasteAction }: { title: string
       <span className="term-title" style={{ color }}>{title}</span>
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
         {onPasteAction && (
-          <button 
+          <button
             onClick={onPasteAction}
             style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '0 4px', fontSize: '14px', opacity: 0.8, color: 'var(--text)' }}
             title="Paste text to Gea"
@@ -56,11 +55,11 @@ function TerminalChrome({ title, color, isLive, onPasteAction }: { title: string
 export default function HomePanel({ isActive, thoughts, statusText, UIState, visionThoughts, isGenerating, jobs, connect, stopAll, sendTextMessage }: Props) {
   const transcriptRef = useRef<HTMLDivElement>(null);
   const visionRef = useRef<HTMLDivElement>(null);
+  const [typeInput, setTypeInput] = useState('');
 
   useLayoutEffect(() => {
     const el = transcriptRef.current;
     if (!el) return;
-    // Find the inner transcript div
     const transcript = el.querySelector('.ai-transcript');
     if (transcript) {
       transcript.innerHTML = thoughts || '<span style="opacity:0.3">$ awaiting connection...</span>';
@@ -76,6 +75,14 @@ export default function HomePanel({ isActive, thoughts, statusText, UIState, vis
       requestAnimationFrame(() => { if (el) el.scrollTop = el.scrollHeight; });
     }
   }, [visionThoughts]);
+
+  const handleSendTyped = () => {
+    const text = typeInput.trim();
+    if (!text || !sendTextMessage) return;
+    sendTextMessage(text);
+    setTypeInput('');
+    window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '✉️ Sent to Gea' }));
+  };
 
   const runningCount = jobs.filter(j => j.status === 'running').length;
 
@@ -127,6 +134,48 @@ export default function HomePanel({ isActive, thoughts, statusText, UIState, vis
           />
         </div>
       </div>
+
+      {/* ═══ TYPE TO GEA ═══ */}
+      {isActive && sendTextMessage && (
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+          <input
+            value={typeInput}
+            onChange={e => setTypeInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendTyped(); } }}
+            placeholder="Type to Gea..."
+            style={{
+              flex: 1,
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--phosphor-dim)',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--phosphor)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '13px',
+              padding: '10px 14px',
+              outline: 'none',
+              caretColor: 'var(--phosphor)',
+            }}
+          />
+          <button
+            onClick={handleSendTyped}
+            disabled={!typeInput.trim()}
+            style={{
+              background: typeInput.trim() ? 'var(--phosphor-glow)' : 'transparent',
+              border: '1px solid var(--phosphor-dim)',
+              borderRadius: 'var(--radius-sm)',
+              color: 'var(--phosphor)',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '12px',
+              fontWeight: 800,
+              padding: '10px 16px',
+              cursor: typeInput.trim() ? 'pointer' : 'default',
+              opacity: typeInput.trim() ? 1 : 0.4,
+              letterSpacing: '0.5px',
+              transition: 'all 0.15s ease',
+            }}
+          >SEND</button>
+        </div>
+      )}
 
       {/* ═══ CONNECT BUTTON ═══ */}
       <button

@@ -758,7 +758,7 @@ Manually created notes: The user can create notes manually in the app. These not
 
           else if (call.name === "getScribeLensStatus") {
             try {
-              const res = await fetch("https://192.168.1.72:8877/api/global_status");
+              const res = await fetch("https://192.168.1.72:7777/api/global_status");
               if (!res.ok) throw new Error("Status " + res.status);
               const data = await res.json();
               result = { result: "ScribeLens is alive. Status: " + JSON.stringify(data) };
@@ -770,7 +770,7 @@ Manually created notes: The user can create notes manually in the app. These not
           else if (call.name === "searchMeetings") {
             try {
               const q = encodeURIComponent(call.args.query || "");
-              const res = await fetch("https://192.168.1.72:8877/api/search_meetings?q=" + q);
+              const res = await fetch("https://192.168.1.72:7777/api/search_meetings?q=" + q);
               if (!res.ok) throw new Error("Status " + res.status);
               const text = await res.text();
               result = { result: text || "No results found." };
@@ -782,7 +782,7 @@ Manually created notes: The user can create notes manually in the app. These not
           else if (call.name === "getMeetingDetail") {
             try {
               const id = encodeURIComponent(call.args.job_id || "");
-              const res = await fetch("https://192.168.1.72:8877/api/meeting/" + id);
+              const res = await fetch("https://192.168.1.72:7777/api/meeting/" + id);
               if (!res.ok) throw new Error("Status " + res.status);
               const data = await res.json();
               result = { result: "Meeting Data: " + JSON.stringify({

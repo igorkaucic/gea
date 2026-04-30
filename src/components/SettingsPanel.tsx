@@ -154,7 +154,7 @@ export default function SettingsPanel({ apiKey, setApiKey, userInfo, isSyncing, 
           
           <button
             className="settings-btn settings-btn-secondary"
-            onClick={() => window.open('https://192.168.1.72:8877/api/global_status', '_blank')}
+            onClick={() => window.open('https://192.168.1.72:7777/api/global_status', '_blank')}
             style={{ marginTop: '12px' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>

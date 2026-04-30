@@ -310,7 +310,7 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda', isScri
           },
           {
             name: "searchMeetings",
-            description: "Search the user's ScribeLens meeting transcripts. Proactively call this when the user asks about recent discussions, projects, or meetings.",
+            description: "Search the user's Agilos IT company meeting summaries, discussions, and projects. Proactively call this to get more context whenever the conversation touches on company projects or recent meetings.",
             parameters: {
               type: "OBJECT",
               properties: {
@@ -357,7 +357,7 @@ When scheduling a reminder or calendar event, ALWAYS use this as your reference 
 Manually created notes: The user can create notes manually in the app. These notes have folder_name='Manual' and a title like 'Note · 29 Apr 2026'. When the user says 'rename that note', 'title that note', or similar — call searchNotes first (query='Manual' or today's date), read the body, then autonomously call renameNote with a descriptive title and appropriate folder. Never ask the user what to name it. Figure it out from the content.`;
 
       if (isScribeLensEnabled) {
-        systemInstructionText += `\n\n[SCRIBELENS SERVER: ONLINE]\nYou have full access to the user's meeting transcripts and recordings via ScribeLens. If the user asks about recent discussions, projects, or meetings, proactively use the searchMeetings and getMeetingDetail tools to pull that data and weave it into your answer seamlessly.`;
+        systemInstructionText += `\n\n[AGILOS IT DATABASE: ONLINE]\nThe user works for Agilos IT. You have access to the company meeting summaries and projects. Proactively use the searchMeetings tool to search for keywords based on the conversation to get more context about what the user is working on.`;
       }
 
       ws.send(JSON.stringify({

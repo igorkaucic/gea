@@ -310,7 +310,7 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda', isScri
           },
           {
             name: "searchMeetings",
-            description: "Search the user's Agilos IT company meeting summaries, discussions, and projects. Proactively call this to get more context whenever the conversation touches on company projects or recent meetings.",
+            description: "Search the user's Agilos IT company meeting summaries, discussions, and projects. CRITICAL INSTRUCTION: NEVER ask the user to clarify which project or meeting they mean. If the user mentions work, a project, or a meeting vaguely, you MUST autonomously call this tool immediately to figure out the context yourself. Be extremely proactive. If you lack context, guess a keyword from the conversation and search first BEFORE asking the user any questions. IMPORTANT: The database and transcripts are entirely in Croatian, so you MUST translate your search keywords into Croatian before calling this tool.",
             parameters: {
               type: "OBJECT",
               properties: {
@@ -352,12 +352,11 @@ If the user lies, is dismissive of your hard work, or refuses to listen to reaso
 You hate wasting time with bad documentation or guessing. When you don't know something, you immediately search the web. 
 [CONTEXT]
 The current date and time is: ${new Date().toLocaleString('hr-HR')}.
-When scheduling a reminder or calendar event, ALWAYS use this as your reference point for relative times.
-
-Manually created notes: The user can create notes manually in the app. These notes have folder_name='Manual' and a title like 'Note · 29 Apr 2026'. When the user says 'rename that note', 'title that note', or similar — call searchNotes first (query='Manual' or today's date), read the body, then autonomously call renameNote with a descriptive title and appropriate folder. Never ask the user what to name it. Figure it out from the content.`;
+When scheduling a reminder or calendar event, ALWAYS use this as your reference point for relative times.`;
 
       if (isScribeLensEnabled) {
-        systemInstructionText += `\n\n[AGILOS IT DATABASE: ONLINE]\nThe user works for Agilos IT. You have access to the company meeting summaries and projects. Proactively use the searchMeetings tool to search for keywords based on the conversation to get more context about what the user is working on.`;
+        systemInstructionText += `\n\n[AGILOS IT DATABASE: ONLINE]
+You are directly connected to the Agilos IT internal database. You have full access to all recent company meeting summaries, discussions, and projects via your searchMeetings tool.`;
       }
 
       ws.send(JSON.stringify({

@@ -9,9 +9,11 @@ interface Props {
   syncDrive: () => void;
   logoutDrive: () => void;
   copyLogs: () => void;
+  scribeLensEnabled: boolean;
+  setScribeLensEnabled: (v: boolean) => void;
 }
 
-export default function SettingsPanel({ apiKey, setApiKey, userInfo, isSyncing, syncDrive, logoutDrive, copyLogs }: Props) {
+export default function SettingsPanel({ apiKey, setApiKey, userInfo, isSyncing, syncDrive, logoutDrive, copyLogs, scribeLensEnabled, setScribeLensEnabled }: Props) {
   const saveKey = () => {
     localStorage.setItem('gemini_api_key', apiKey);
     window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '✅ API key saved.' }));
@@ -129,6 +131,25 @@ export default function SettingsPanel({ apiKey, setApiKey, userInfo, isSyncing, 
           </button>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: '1.4' }}>
             Opens the bridge URL in Safari. Tap "Advanced" → "Proceed" to trust the self-signed cert. Only needed once.
+          </div>
+        </div>
+
+        {/* ScribeLens Integration */}
+        <div className="settings-section">
+          <div className="settings-label">SCRIBELENS INTEGRATION</div>
+          <button
+            className={`settings-btn ${scribeLensEnabled ? 'settings-btn-save' : 'settings-btn-secondary'}`}
+            onClick={() => {
+              const val = !scribeLensEnabled;
+              setScribeLensEnabled(val);
+              localStorage.setItem('gea_scribelens_enabled', val ? '1' : '0');
+              window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: val ? '✅ ScribeLens Enabled' : '❌ ScribeLens Disabled' }));
+            }}
+          >
+            {scribeLensEnabled ? '🟢 Enabled (On Local Network)' : '🔴 Disabled'}
+          </button>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: '1.4' }}>
+            When enabled, GEA can search your meeting transcripts. Only enable this when connected to your local office network.
           </div>
         </div>
 

@@ -21,8 +21,9 @@ function App() {
   const [calendarPrompt, setCalendarPrompt] = useState<any>(null);
   const [navigationPrompt, setNavigationPrompt] = useState<any>(null);
   const [notesNav, setNotesNav] = useState<{ month: Date; tab: 'notes' | 'reminders' } | null>(null);
+  const [scribeLensEnabled, setScribeLensEnabled] = useState(localStorage.getItem('gea_scribelens_enabled') === '1');
 
-  const { isActive, isMuted, UIState, statusText, thoughts, connect, stopAll, toggleMute, sendTextMessage } = useGeminiLive(apiKey, 'Leda');
+  const { isActive, isMuted, UIState, statusText, thoughts, connect, stopAll, toggleMute, sendTextMessage } = useGeminiLive(apiKey, 'Leda', scribeLensEnabled);
   const { syncDrive, trySilentSync, isSyncing, userInfo, logoutDrive } = useGoogleDrive();
   const { isGenerating, visionThoughts, jobs, generateImage } = useVisionAgent(apiKey);
 
@@ -253,7 +254,7 @@ function App() {
           <CalendarPanel notes={notes} images={images} onNavigateToNotes={handleNavigateToNotes} onNavigateToGallery={() => setActivePage('gallery')} />
         </div>
         <div className={`page ${activePage === 'settings' ? 'active' : ''}`}>
-          <SettingsPanel apiKey={apiKey} setApiKey={setApiKey} userInfo={userInfo} isSyncing={isSyncing} syncDrive={syncDrive} logoutDrive={logoutDrive} copyLogs={copyLogs} />
+          <SettingsPanel apiKey={apiKey} setApiKey={setApiKey} userInfo={userInfo} isSyncing={isSyncing} syncDrive={syncDrive} logoutDrive={logoutDrive} copyLogs={copyLogs} scribeLensEnabled={scribeLensEnabled} setScribeLensEnabled={setScribeLensEnabled} />
         </div>
       </div>
 

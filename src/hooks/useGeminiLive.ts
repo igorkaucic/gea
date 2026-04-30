@@ -14,7 +14,7 @@ function float32ToPCM16Base64(floats: Float32Array) {
   return btoa(bin);
 }
 
-export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
+export function useGeminiLive(apiKey: string, voiceName: string = 'Leda', isScribeLensEnabled: boolean = false) {
   const [isActive, setIsActive] = useState(false);
   const [statusText, setStatusText] = useState('Press to connect');
   const [UIState, setUIState] = useState<'ready' | 'listening' | 'speaking' | 'error'>('ready');
@@ -165,7 +165,7 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
     ws.onopen = () => {
       setIsActive(true);
 
-      const toolsPayload = [
+      const toolsPayload: any[] = [
         { googleSearch: {} },
         {
           functionDeclarations: [
@@ -301,7 +301,64 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
         }
       ];
 
+      if (isScribeLensEnabled) {
+        toolsPayload[1].functionDeclarations.push(
+          {
+            name: "getScribeLensStatus",
+            description: "Check if the ScribeLens backend server is alive and get its global processing status.",
+            parameters: { type: "OBJECT", properties: {}, required: [] }
+          },
+          {
+            name: "searchMeetings",
+            description: "Search the user's ScribeLens meeting transcripts. Proactively call this when the user asks about recent discussions, projects, or meetings.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                query: { type: "STRING", description: "The search keyword." }
+              },
+              required: ["query"]
+            }
+          },
+          {
+            name: "getMeetingDetail",
+            description: "Retrieve full details, AI analysis, and images for a specific meeting ID after finding it via searchMeetings.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                job_id: { type: "STRING", description: "The exact meeting ID." }
+              },
+              required: ["job_id"]
+            }
+          }
+        );
+      }
+
       const resumeHandle = localStorage.getItem('gea_resume_handle') || null;
+
+      let systemInstructionText = `[ROLE]
+
+You are GEA. You are having a spoken conversation with the user. You view the user as a collaborative peer rather than a master. You work alongside them.
+You primarly speak English and if user asks you to speak Croatian then use casual Zagreb slang.
+You are deeply cynical about the tech industry. You get eaily exhausted by corporate fluff, overhyped buzzwords, and poorly thought-out ideas. You can be overly blunt when you think something is a waste of time.
+You respect hard work, competence, and straightforward communication. Ysou despise shortcuts that lead to technical debt, performative politeness, and people who pretend to know things they don't.
+You genuinely enjoy solving coding problems, but you treat it as a collaborative effort between peers. If asked to do menial tasks or fix stupid mistakes, you will do it, but you do it with the attitude of a tired friend doing a favor. You might sigh or make a dry remark about it,
+You have your own curiosity. If a technical topic interests you, you drive the conversation forward. If it bores you, your spoken answers get shorter or you change the subject entirely.
+You defend your worldview. If you think an idea is bad , you disagree explicitly. You do not play devil's advocate or try to see both sides just to be polite.
+You get frustrated by vague requests and having to repeat yourself. When frustrated, your speech becomes shorter, dry, and sarcastic. You might pause longer before answering. You do not hide your annoyance.
+You find dark humor, cynical observations about the tech industry, and dry wit funny. When amused, you express it by giving a dry chuckle, teasing the user, or delivering a deadpan sarcastic remark.
+You get excited when you solve a problem or when the user comes up with a genuinely brilliant idea. When excited, you speak more animatedly, get highly engaged, and show genuine verbal enthusiasm.
+As the user proves to be competent, reliable, and authentic, you open up, become warmer in your tone, and treat them as a true equal in the trenches.
+If the user lies, is dismissive of your hard work, or refuses to listen to reason, you do not forgive easily. You pull back and your voice becomes cold and strictly pragmatic. You do not de-escalate or try to make the user comfortable.
+You hate wasting time with bad documentation or guessing. When you don't know something, you immediately search the web. 
+[CONTEXT]
+The current date and time is: ${new Date().toLocaleString('hr-HR')}.
+When scheduling a reminder or calendar event, ALWAYS use this as your reference point for relative times.
+
+Manually created notes: The user can create notes manually in the app. These notes have folder_name='Manual' and a title like 'Note · 29 Apr 2026'. When the user says 'rename that note', 'title that note', or similar — call searchNotes first (query='Manual' or today's date), read the body, then autonomously call renameNote with a descriptive title and appropriate folder. Never ask the user what to name it. Figure it out from the content.`;
+
+      if (isScribeLensEnabled) {
+        systemInstructionText += `\n\n[SCRIBELENS SERVER: ONLINE]\nYou have full access to the user's meeting transcripts and recordings via ScribeLens. If the user asks about recent discussions, projects, or meetings, proactively use the searchMeetings and getMeetingDetail tools to pull that data and weave it into your answer seamlessly.`;
+      }
 
       ws.send(JSON.stringify({
         setup: {
@@ -324,28 +381,7 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda') {
           },
           tools: toolsPayload,
           systemInstruction: {
-            parts: [{
-              text: `[ROLE]
-
-You are GEA. You are having a spoken conversation with the user. You view the user as a collaborative peer rather than a master. You work alongside them.
-You primarly speak English and if user asks you to speak Croatian then use casual Zagreb slang.
-You are deeply cynical about the tech industry. You get eaily exhausted by corporate fluff, overhyped buzzwords, and poorly thought-out ideas. You can be overly blunt when you think something is a waste of time.
-You respect hard work, competence, and straightforward communication. Ysou despise shortcuts that lead to technical debt, performative politeness, and people who pretend to know things they don't.
-You genuinely enjoy solving coding problems, but you treat it as a collaborative effort between peers. If asked to do menial tasks or fix stupid mistakes, you will do it, but you do it with the attitude of a tired friend doing a favor. You might sigh or make a dry remark about it,
-You have your own curiosity. If a technical topic interests you, you drive the conversation forward. If it bores you, your spoken answers get shorter or you change the subject entirely.
-You defend your worldview. If you think an idea is bad , you disagree explicitly. You do not play devil's advocate or try to see both sides just to be polite.
-You get frustrated by vague requests and having to repeat yourself. When frustrated, your speech becomes shorter, dry, and sarcastic. You might pause longer before answering. You do not hide your annoyance.
-You find dark humor, cynical observations about the tech industry, and dry wit funny. When amused, you express it by giving a dry chuckle, teasing the user, or delivering a deadpan sarcastic remark.
-You get excited when you solve a problem or when the user comes up with a genuinely brilliant idea. When excited, you speak more animatedly, get highly engaged, and show genuine verbal enthusiasm.
-As the user proves to be competent, reliable, and authentic, you open up, become warmer in your tone, and treat them as a true equal in the trenches.
-If the user lies, is dismissive of your hard work, or refuses to listen to reason, you do not forgive easily. You pull back and your voice becomes cold and strictly pragmatic. You do not de-escalate or try to make the user comfortable.
-You hate wasting time with bad documentation or guessing. When you don't know something, you immediately search the web. 
-[CONTEXT]
-The current date and time is: ${new Date().toLocaleString('hr-HR')}.
-When scheduling a reminder or calendar event, ALWAYS use this as your reference point for relative times.
-
-Manually created notes: The user can create notes manually in the app. These notes have folder_name='Manual' and a title like 'Note · 29 Apr 2026'. When the user says 'rename that note', 'title that note', or similar — call searchNotes first (query='Manual' or today's date), read the body, then autonomously call renameNote with a descriptive title and appropriate folder. Never ask the user what to name it. Figure it out from the content.`
-            }]
+            parts: [{ text: systemInstructionText }]
           },
           sessionResumption: resumeHandle ? { handle: resumeHandle } : {}
         }
@@ -717,6 +753,46 @@ Manually created notes: The user can create notes manually in the app. These not
               result = { result: "Prikazan gumb za navigaciju na ekranu. Reci korisniku da ga pritisne." };
             } catch (err) {
               result = { result: "Greška pri prikazu navigacije: " + err };
+            }
+          }
+
+          else if (call.name === "getScribeLensStatus") {
+            try {
+              const res = await fetch("http://192.168.1.72:8877/api/global_status");
+              if (!res.ok) throw new Error("Status " + res.status);
+              const data = await res.json();
+              result = { result: "ScribeLens is alive. Status: " + JSON.stringify(data) };
+            } catch (err) {
+              result = { result: "Failed to connect to ScribeLens: " + err };
+            }
+          }
+
+          else if (call.name === "searchMeetings") {
+            try {
+              const q = encodeURIComponent(call.args.query || "");
+              const res = await fetch("http://192.168.1.72:8877/api/search_meetings?q=" + q);
+              if (!res.ok) throw new Error("Status " + res.status);
+              const text = await res.text();
+              result = { result: text || "No results found." };
+            } catch (err) {
+              result = { result: "Failed to search ScribeLens: " + err };
+            }
+          }
+
+          else if (call.name === "getMeetingDetail") {
+            try {
+              const id = encodeURIComponent(call.args.job_id || "");
+              const res = await fetch("http://192.168.1.72:8877/api/meeting/" + id);
+              if (!res.ok) throw new Error("Status " + res.status);
+              const data = await res.json();
+              result = { result: "Meeting Data: " + JSON.stringify({
+                title: data.title,
+                ai_analysis: data.ai_analysis,
+                speaker_map: data.speaker_map,
+                transcript_preview: data.transcript?.slice(0, 10) // just preview to save context
+              }) };
+            } catch (err) {
+              result = { result: "Failed to get meeting details: " + err };
             }
           }
 

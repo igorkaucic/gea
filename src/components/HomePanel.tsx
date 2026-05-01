@@ -178,13 +178,43 @@ export default function HomePanel({ isActive, thoughts, statusText, UIState, vis
       )}
 
       {/* ═══ CONNECT BUTTON ═══ */}
-      <button
-        className={`connect-btn ${isActive ? 'active' : ''}`}
-        onClick={isActive ? stopAll : connect}
-        id="btn-connect"
-      >
-        {isActive ? '● LIVE SESSION ACTIVE' : '▶ START SESSION'}
-      </button>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <button
+          className={`connect-btn ${isActive ? 'active' : ''}`}
+          onClick={isActive ? stopAll : connect}
+          id="btn-connect"
+          style={{ flex: 1 }}
+        >
+          {isActive ? '● LIVE SESSION ACTIVE' : '▶ START SESSION'}
+        </button>
+        {!isActive && (
+          <button
+            onClick={() => {
+              localStorage.removeItem('gea_resume_handle');
+              window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '🧠 Memory Cleared' }));
+            }}
+            style={{
+              background: 'var(--bg-surface)',
+              border: '1px solid #FF4C6A',
+              color: '#FF4C6A',
+              borderRadius: 'var(--radius-sm)',
+              padding: '0 16px',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '12px',
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textShadow: '0 0 4px rgba(255,76,106,0.4)',
+              boxShadow: '0 0 8px rgba(255,76,106,0.1)'
+            }}
+            title="Clear AI memory of previous conversation"
+          >
+            CLEAR
+          </button>
+        )}
+      </div>
     </div>
   );
 }

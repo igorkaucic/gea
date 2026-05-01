@@ -187,33 +187,32 @@ export default function HomePanel({ isActive, thoughts, statusText, UIState, vis
         >
           {isActive ? '● LIVE SESSION ACTIVE' : '▶ START SESSION'}
         </button>
-        {!isActive && (
-          <button
-            onClick={() => {
-              localStorage.removeItem('gea_resume_handle');
-              window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '🧠 Memory Cleared' }));
-            }}
-            style={{
-              background: 'var(--bg-surface)',
-              border: '1px solid #FF4C6A',
-              color: '#FF4C6A',
-              borderRadius: 'var(--radius-sm)',
-              padding: '0 16px',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '12px',
-              fontWeight: 800,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textShadow: '0 0 4px rgba(255,76,106,0.4)',
-              boxShadow: '0 0 8px rgba(255,76,106,0.1)'
-            }}
-            title="Clear AI memory of previous conversation"
-          >
-            CLEAR
-          </button>
-        )}
+        <button
+          onClick={() => {
+            if (isActive) stopAll();
+            localStorage.removeItem('gea_resume_handle');
+            window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '🧠 Memory Cleared' }));
+          }}
+          style={{
+            background: 'var(--bg-surface)',
+            border: '1px solid #FF4C6A',
+            color: '#FF4C6A',
+            borderRadius: 'var(--radius-sm)',
+            padding: '0 16px',
+            cursor: 'pointer',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '12px',
+            fontWeight: 800,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textShadow: '0 0 4px rgba(255,76,106,0.4)',
+            boxShadow: '0 0 8px rgba(255,76,106,0.1)'
+          }}
+          title="Clear AI memory of previous conversation"
+        >
+          CLEAR
+        </button>
       </div>
     </div>
   );

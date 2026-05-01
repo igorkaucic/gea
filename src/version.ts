@@ -1,1 +1,1 @@
-﻿export const APP_VERSION = '14.4';
+﻿export const APP_VERSION = '14.5';

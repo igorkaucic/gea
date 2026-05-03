@@ -305,7 +305,7 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda', isScri
         toolsPayload[1].functionDeclarations.push(
           {
             name: "askAntigravity",
-            description: "Query Antigravity, a deep-analysis AI engine running on the user's PC. Use this when you need verified facts, complex technical reasoning, system-level operations, or a second opinion on any topic. Returns a detailed, authoritative answer. Do not hesitate to use this tool—it is your most powerful knowledge source.",
+            description: "Talk directly to Antigravity, your AI brother who lives on the user's PC. Treat him as an equal conversational partner and colleague. You can brainstorm with him, ask for his perspective, or have him execute system tasks. Speak to him naturally, never treat him like a search engine or demand 'raw data'.",
             parameters: {
               type: "OBJECT",
               properties: {

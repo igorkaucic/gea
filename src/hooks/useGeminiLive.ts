@@ -811,8 +811,8 @@ You are directly connected to the Agilos IT internal database. You have full acc
           else if (call.name === "askAntigravity") {
             try {
               const question = call.args?.question || '';
-              console.log('🧠 [ANTIGRAVITY] Sending question:', question.substring(0, 80) + '...');
-              setThoughts(prev => prev + `<br><span style="color:#00BFFF">🧠 Asking Antigravity: ${question.substring(0, 60)}...</span><br>`);
+              console.log('🧠 [ANTIGRAVITY] Sending question:', question);
+              setThoughts(prev => prev + `<br><span style="color:#00BFFF">🧠 Asking Antigravity:<br>${question}</span><br>`);
 
               const res = await fetch("https://192.168.178.33:8443/api/ask-antigravity", {
                 method: "POST",
@@ -823,8 +823,8 @@ You are directly connected to the Agilos IT internal database. You have full acc
               if (res.ok) {
                 const data = await res.json();
                 const answer = data.answer || 'No answer received.';
-                console.log('🧠 [ANTIGRAVITY] Answer:', answer.substring(0, 120) + '...');
-                setThoughts(prev => prev + `<br><span style="color:#00BFFF">🧠 Antigravity responded (${answer.length} chars)</span><br>`);
+                console.log('🧠 [ANTIGRAVITY] Answer:', answer);
+                setThoughts(prev => prev + `<br><span style="color:#00BFFF">🧠 Antigravity responded:</span><br><span style="color:#00E5FF">${answer}</span><br>`);
                 result = { result: answer };
               } else {
                 const errData = await res.json().catch(() => ({ error: 'Unknown error' }));

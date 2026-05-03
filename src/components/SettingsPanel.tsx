@@ -186,6 +186,20 @@ export default function SettingsPanel({ apiKey, setApiKey, userInfo, isSyncing, 
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: '1.4' }}>
             Enables the local bridging server to route complex queries directly into the Antigravity IDE session. Only works when connected to your home WiFi.
           </div>
+
+          <button
+            className="settings-btn settings-btn-secondary"
+            onClick={() => window.open('https://192.168.178.20:8443/api/ask-antigravity', '_blank')}
+            style={{ marginTop: '12px' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            Trust Server Certificate
+          </button>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: '1.4' }}>
+            Opens the Antigravity bridge server. Tap "Advanced" → "Proceed" to trust the self-signed cert. Required for iOS.
+          </div>
         </div>
 
         {/* Logs */}

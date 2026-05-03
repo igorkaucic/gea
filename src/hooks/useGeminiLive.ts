@@ -814,7 +814,7 @@ You are directly connected to the Agilos IT internal database. You have full acc
               console.log('🧠 [ANTIGRAVITY] Sending question:', question.substring(0, 80) + '...');
               setThoughts(prev => prev + `<br><span style="color:#00BFFF">🧠 Asking Antigravity: ${question.substring(0, 60)}...</span><br>`);
 
-              const res = await fetch("https://192.168.178.20:8080/api/ask-antigravity", {
+              const res = await fetch("https://192.168.178.20:8443/api/ask-antigravity", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ question })

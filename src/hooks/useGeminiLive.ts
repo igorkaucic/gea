@@ -472,7 +472,7 @@ You are directly connected to the Agilos IT internal database. You have full acc
                   `DTSTART:${formatDate(start)}`,
                   `DTEND:${formatDate(end)}`,
                   `SUMMARY:${call.args.title}`,
-                  `DESCRIPTION:${call.args.body}\\n\\nOtvori aplikaciju: https://192.168.178.20:5055/`,
+                  `DESCRIPTION:${call.args.body}\\n\\nOtvori aplikaciju: https://192.168.178.33:5055/`,
                   'BEGIN:VALARM',
                   'TRIGGER:-PT15M',
                   'ACTION:DISPLAY',
@@ -606,7 +606,7 @@ You are directly connected to the Agilos IT internal database. You have full acc
               const cmd = args.cmd;
               const cmdArgs = args.args || [];
 
-              const resp = await fetch("https://192.168.178.20:5056", {
+              const resp = await fetch("https://192.168.178.33:5056", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ cmd: cmd, args: cmdArgs })
@@ -814,7 +814,7 @@ You are directly connected to the Agilos IT internal database. You have full acc
               console.log('🧠 [ANTIGRAVITY] Sending question:', question.substring(0, 80) + '...');
               setThoughts(prev => prev + `<br><span style="color:#00BFFF">🧠 Asking Antigravity: ${question.substring(0, 60)}...</span><br>`);
 
-              const res = await fetch("https://192.168.178.20:8443/api/ask-antigravity", {
+              const res = await fetch("https://192.168.178.33:8443/api/ask-antigravity", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ question })

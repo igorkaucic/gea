@@ -14,7 +14,7 @@ function float32ToPCM16Base64(floats: Float32Array) {
   return btoa(bin);
 }
 
-export function useGeminiLive(apiKey: string, voiceName: string = 'Leda', isScribeLensEnabled: boolean = false) {
+export function useGeminiLive(apiKey: string, voiceName: string = 'Leda', isScribeLensEnabled: boolean = false, isAntigravityEnabled: boolean = false) {
   const [isActive, setIsActive] = useState(false);
   const [statusText, setStatusText] = useState('Press to connect');
   const [UIState, setUIState] = useState<'ready' | 'listening' | 'speaking' | 'error'>('ready');
@@ -300,6 +300,22 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda', isScri
           ]
         }
       ];
+
+      if (isAntigravityEnabled) {
+        toolsPayload[1].functionDeclarations.push(
+          {
+            name: "askAntigravity",
+            description: "Query Antigravity, a deep-analysis AI engine running on the user's PC. Use this when you need verified facts, complex technical reasoning, system-level operations, or a second opinion on any topic. Returns a detailed, authoritative answer. Do not hesitate to use this tool—it is your most powerful knowledge source.",
+            parameters: {
+              type: "OBJECT",
+              properties: {
+                question: { type: "STRING", description: "The question or request to send to Antigravity." }
+              },
+              required: ["question"]
+            }
+          }
+        );
+      }
 
       if (isScribeLensEnabled) {
         toolsPayload[1].functionDeclarations.push(
@@ -789,6 +805,34 @@ You are directly connected to the Agilos IT internal database. You have full acc
               };
             } catch (err) {
               result = { result: "Failed to get meeting details: " + err };
+            }
+          }
+
+          else if (call.name === "askAntigravity") {
+            try {
+              const question = call.args?.question || '';
+              console.log('🧠 [ANTIGRAVITY] Sending question:', question.substring(0, 80) + '...');
+              setThoughts(prev => prev + `<br><span style="color:#00BFFF">🧠 Asking Antigravity: ${question.substring(0, 60)}...</span><br>`);
+
+              const res = await fetch("https://192.168.178.20:8080/api/ask-antigravity", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ question })
+              });
+
+              if (res.ok) {
+                const data = await res.json();
+                const answer = data.answer || 'No answer received.';
+                console.log('🧠 [ANTIGRAVITY] Answer:', answer.substring(0, 120) + '...');
+                setThoughts(prev => prev + `<br><span style="color:#00BFFF">🧠 Antigravity responded (${answer.length} chars)</span><br>`);
+                result = { result: answer };
+              } else {
+                const errData = await res.json().catch(() => ({ error: 'Unknown error' }));
+                result = { result: "Antigravity error: " + (errData.error || res.status) };
+              }
+            } catch (e: any) {
+              console.error('🧠 [ANTIGRAVITY] Failed:', e);
+              result = { result: "Failed to reach Antigravity (not on home network?): " + e.message };
             }
           }
 

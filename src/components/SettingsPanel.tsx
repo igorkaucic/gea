@@ -11,9 +11,11 @@ interface Props {
   copyLogs: () => void;
   scribeLensEnabled: boolean;
   setScribeLensEnabled: (v: boolean) => void;
+  antigravityEnabled: boolean;
+  setAntigravityEnabled: (v: boolean) => void;
 }
 
-export default function SettingsPanel({ apiKey, setApiKey, userInfo, isSyncing, syncDrive, logoutDrive, copyLogs, scribeLensEnabled, setScribeLensEnabled }: Props) {
+export default function SettingsPanel({ apiKey, setApiKey, userInfo, isSyncing, syncDrive, logoutDrive, copyLogs, scribeLensEnabled, setScribeLensEnabled, antigravityEnabled, setAntigravityEnabled }: Props) {
   const saveKey = () => {
     localStorage.setItem('gemini_api_key', apiKey);
     window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: '✅ API key saved.' }));
@@ -164,6 +166,25 @@ export default function SettingsPanel({ apiKey, setApiKey, userInfo, isSyncing, 
           </button>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: '1.4' }}>
             Opens the ScribeLens server. Tap "Advanced" → "Proceed" to trust the self-signed cert. Only needed once per device.
+          </div>
+        </div>
+
+        {/* Antigravity Integration */}
+        <div className="settings-section">
+          <div className="settings-label">ANTIGRAVITY KNOWLEDGE ENGINE</div>
+          <button
+            className={`settings-btn ${antigravityEnabled ? 'settings-btn-save' : 'settings-btn-secondary'}`}
+            onClick={() => {
+              const val = !antigravityEnabled;
+              setAntigravityEnabled(val);
+              localStorage.setItem('gea_antigravity_enabled', val ? '1' : '0');
+              window.dispatchEvent(new CustomEvent('SHOW_TOAST', { detail: val ? '✅ Antigravity Link Enabled' : '❌ Antigravity Link Disabled' }));
+            }}
+          >
+            {antigravityEnabled ? '🟢 Linked (Local Server Active)' : '🔴 Unlinked'}
+          </button>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', lineHeight: '1.4' }}>
+            Enables the local bridging server to route complex queries directly into the Antigravity IDE session. Only works when connected to your home WiFi.
           </div>
         </div>
 

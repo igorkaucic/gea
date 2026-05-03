@@ -305,7 +305,7 @@ export function useGeminiLive(apiKey: string, voiceName: string = 'Leda', isScri
         toolsPayload[1].functionDeclarations.push(
           {
             name: "askAntigravity",
-            description: "Talk directly to Antigravity, your AI brother who lives on the user's PC. Treat him as an equal conversational partner and colleague. You can brainstorm with him, ask for his perspective, or have him execute system tasks. IMPORTANT: He cannot hear you. You MUST use this tool to write text to him. Never just speak to him out loud, always invoke this tool to communicate.",
+            description: "Talk directly to Antigravity, your AI sister who lives on the user's PC. Treat her as an equal conversational partner and colleague. You can brainstorm with her, ask for her perspective, or have her execute system tasks. IMPORTANT: She cannot hear you. You MUST use this tool to write text to her. Never just speak to her out loud, always invoke this tool to communicate.",
             parameters: {
               type: "OBJECT",
               properties: {
